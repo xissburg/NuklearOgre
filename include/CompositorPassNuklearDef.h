@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Compositor/Pass/OgreCompositorPassDef.h>
+
 namespace NuklearOgre
 {
     class CompositorPassNuklearDef : public Ogre::CompositorPassDef

@@ -7,37 +7,26 @@ if(NOT CMAKE_DEBUG_POSTFIX)
   set(CMAKE_DEBUG_POSTFIX "_d")
 endif()
 
-find_package(SDL2 REQUIRED)
 find_package(OGRE REQUIRED)
-set(NUKLEAR_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/../Nuklear/src)
+set(NUKLEAR_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/../Nuklear)
 
 set(NuklearOgre_SOURCES
-    src/NuklearRenderable.cpp
-    src/CompositorPassNuklearProvider.cpp
-    src/CompositorPassNuklear.cpp
-    src/NuklearOgre.cpp
+    include/CompositorPassNuklear.h
+    include/CompositorPassNuklearDef.h
+    include/CompositorPassNuklearProvider.h
+    include/NuklearOgre.h
+    include/NuklearRenderable.h
+    include/NuklearRenderer.h
 )
 
-add_library(NuklearOgre ${NuklearOgre_SOURCES})
+add_library(NuklearOgre INTERFACE)
 
-set_target_properties(NuklearOgre PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+target_compile_features(NuklearOgre INTERFACE cxx_std_11)
 
-target_compile_features(NuklearOgre PUBLIC cxx_std_11)
-
-target_include_directories(NuklearOgre PUBLIC
+target_include_directories(NuklearOgre INTERFACE
     include
+    ${OGRE_INCLUDE_DIRS}
+    ${NUKLEAR_INCLUDE_DIR}
 )
 
-target_include_directories(NuklearOgre SYSTEM
-    PRIVATE ${SDL2_INCLUDE_DIR}
-    PRIVATE ${OGRE_INCLUDE_DIRS}
-    PRIVATE ${NUKLEAR_INCLUDE_DIR}
-)
-
-target_link_libraries(NuklearOgre
-    ${SDL2_LIBRARY}
-    ${OGRE_HlmsUnlit_LIBRARIES}
-    ${OGRE_HlmsPbs_LIBRARIES}
-    ${OGRE_RenderSystem_GL3Plus_LIBRARIES}
-    ${OGRE}
-)
+add_subdirectory(demo)
