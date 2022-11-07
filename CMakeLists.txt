@@ -12,6 +12,7 @@ find_package(OGRE REQUIRED)
 set(NUKLEAR_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/../Nuklear/src)
 
 set(NuklearOgre_SOURCES
+    src/NuklearRenderable.cpp
     src/CompositorPassNuklearProvider.cpp
     src/CompositorPassNuklear.cpp
 )
