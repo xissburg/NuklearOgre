@@ -36,7 +36,7 @@ namespace NuklearOgre
 		mObjectData.mLocalRadius[mObjectData.mIndex] = std::numeric_limits<Ogre::Real>::max();
 		mObjectData.mWorldRadius[mObjectData.mIndex] = std::numeric_limits<Ogre::Real>::max();
 
-        setDatablock(Ogre::Root::getSingleton().getHlmsManager()->getHlms(Ogre::HLMS_UNLIT)->getDefaultDatablock());
+        setDatablock(mHlmsManager->getHlms(Ogre::HLMS_UNLIT)->getDefaultDatablock());
 
 		setUseIdentityProjection(true);
 		setUseIdentityView(true);
@@ -48,17 +48,15 @@ namespace NuklearOgre
         mVertexElements.push_back(Ogre::VertexElement2( Ogre::VET_USHORT2_NORM, Ogre::VES_TEXTURE_COORDINATES ));
         mVertexElements.push_back(Ogre::VertexElement2( Ogre::VET_UBYTE4_NORM, Ogre::VES_DIFFUSE ));
 
-        Ogre::VertexBufferPacked *vertexBuffer = mVaoManager->createVertexBuffer(mVertexElements, 10, Ogre::BT_DYNAMIC_PERSISTENT, 0, false);
-        Ogre::IndexBufferPacked *indexBuffer = mVaoManager->createIndexBuffer(mIndexType, 10, Ogre::BT_DYNAMIC_PERSISTENT, 0, false);
+        Ogre::VaoManager *vaoManager = mManager->getDestinationRenderSystem()->getVaoManager();
+        Ogre::VertexBufferPacked *vertexBuffer = vaoManager->createVertexBuffer(mVertexElements, 10, Ogre::BT_DYNAMIC_PERSISTENT, 0, false);
+        Ogre::IndexBufferPacked *indexBuffer = vaoManager->createIndexBuffer(mIndexType, 10, Ogre::BT_DYNAMIC_PERSISTENT, 0, false);
 
         Ogre::VertexBufferPackedVec vertexBuffers;
         vertexBuffers.push_back(vertexBuffer);
-        mVao = mVaoManager->createVertexArrayObject(vertexBuffers, indexBuffer, Ogre::OT_TRIANGLE_LIST);
+        Ogre::VertexArrayObject *vao = vaoManager->createVertexArrayObject(vertexBuffers, indexBuffer, Ogre::OT_TRIANGLE_LIST);
 
-        mVaoPerLod[0].clear();
-		mVaoPerLod[1].clear();
-		mVaoPerLod[0].push_back(mVao);
-		mVaoPerLod[1].push_back(mVao);
+        setVao(vao);
 
         static const struct nk_draw_vertex_layout_element vertex_layout[] = {
             {NK_VERTEX_POSITION, NK_FORMAT_FLOAT, NK_OFFSETOF(UIVertex, position)},
@@ -79,6 +77,14 @@ namespace NuklearOgre
         mNuklearConfig.line_AA = NK_ANTI_ALIASING_OFF;
     }
 
+    void NuklearRenderable::setVao(Ogre::VertexArrayObject *vao)
+    {
+        mVaoPerLod[0].clear();
+		mVaoPerLod[1].clear();
+		mVaoPerLod[0].push_back(vao);
+		mVaoPerLod[1].push_back(vao);
+    }
+
     void NuklearRenderable::addCommands(Ogre::CommandBuffer &commandBuffer,
                                         const Ogre::HlmsCache **lastHlmsCache,
                                         const Ogre::HlmsCache &passCache)
@@ -87,11 +93,11 @@ namespace NuklearOgre
         nk_buffer_clear(&mElementBuffer);
         nk_convert(mNuklearCtx, &mCommands, &mVertexBuffer, &mElementBuffer, &mNuklearConfig);
 
-        Ogre::VertexBufferPacked *vertexBuffer = mVao->getBaseVertexBuffer();
+        Ogre::VertexBufferPacked *vertexBuffer = mVaoPerLod[0].front()->getBaseVertexBuffer();
         size_t currVertexCount = vertexBuffer->getNumElements();
         size_t requiredVertexCount = nk_buffer_total(&mVertexBuffer);
 
-        Ogre::IndexBufferPacked *indexBuffer = mVao->getIndexBuffer();
+        Ogre::IndexBufferPacked *indexBuffer = mVaoPerLod[0].front()->getIndexBuffer();
         size_t currElemCount = indexBuffer->getNumElements();
         size_t requiredElemCount = nk_buffer_total(&mElementBuffer);
 
@@ -129,8 +135,9 @@ namespace NuklearOgre
         {
             Ogre::VertexBufferPackedVec vertexBuffers;
 		    vertexBuffers.push_back(vertexBuffer);
-            vaoManager->destroyVertexArrayObject(mVao);
-            mVao = vaoManager->createVertexArrayObject(vertexBuffers, indexBuffer, Ogre::OT_TRIANGLE_LIST);
+            vaoManager->destroyVertexArrayObject(mVaoPerLod[0].front());
+            Ogre::VertexArrayObject *vao = vaoManager->createVertexArrayObject(vertexBuffers, indexBuffer, Ogre::OT_TRIANGLE_LIST);
+            setVao(vao);
         }
 
         void *vertex = vertexBuffer->map(0, requiredVertexCount);
@@ -162,7 +169,8 @@ namespace NuklearOgre
             *lastHlmsCache = hlmsCache;
         }
 
-        *commandBuffer.addCommand<Ogre::CbVao>() = Ogre::CbVao(mVao);
+        Ogre::VertexArrayObject *vao = mVaoPerLod[0].front();
+        *commandBuffer.addCommand<Ogre::CbVao>() = Ogre::CbVao(vao);
         *commandBuffer.addCommand<Ogre::CbIndirectBuffer>() = Ogre::CbIndirectBuffer(mIndirectBuffer);
 
         const nk_draw_command *cmd;

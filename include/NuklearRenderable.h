@@ -19,6 +19,8 @@ namespace NuklearOgre
 {
     class NuklearRenderable : public Ogre::Renderable, public Ogre::MovableObject
     {
+        void setVao(Ogre::VertexArrayObject *vao);
+
     public:
         NuklearRenderable(Ogre::IdType id, Ogre::ObjectMemoryManager *objectMemoryManager,
 						  Ogre::SceneManager* manager, Ogre::uint8 renderQueueId);
@@ -43,7 +45,6 @@ namespace NuklearOgre
         nk_buffer mCommands;
         nk_buffer mVertexBuffer, mElementBuffer;
         Ogre::HlmsManager *mHlmsManager;
-		Ogre::VertexArrayObject	*mVao;
         Ogre::IndirectBufferPacked *mIndirectBuffer;
         Ogre::VertexElement2Vec mVertexElements;
         const Ogre::IndexType mIndexType;
