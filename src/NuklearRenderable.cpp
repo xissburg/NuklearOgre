@@ -41,6 +41,7 @@ namespace NuklearOgre
 		setUseIdentityProjection(true);
 		setUseIdentityView(true);
 
+        // Add this renderable into the movable.
 		mRenderables.push_back(this);
 
         mVertexElements.reserve(4);
@@ -55,7 +56,6 @@ namespace NuklearOgre
         Ogre::VertexBufferPackedVec vertexBuffers;
         vertexBuffers.push_back(vertexBuffer);
         Ogre::VertexArrayObject *vao = vaoManager->createVertexArrayObject(vertexBuffers, indexBuffer, Ogre::OT_TRIANGLE_LIST);
-
         setVao(vao);
 
         static const struct nk_draw_vertex_layout_element vertex_layout[] = {
@@ -68,7 +68,7 @@ namespace NuklearOgre
         mNuklearConfig.vertex_layout = vertex_layout;
         mNuklearConfig.vertex_size = sizeof(UIVertex);
         mNuklearConfig.vertex_alignment = NK_ALIGNOF(UIVertex);
-        mNuklearConfig.tex_null = dev->tex_null;
+        //mNuklearConfig.tex_null = dev->tex_null;
         mNuklearConfig.circle_segment_count = 22;
         mNuklearConfig.curve_segment_count = 22;
         mNuklearConfig.arc_segment_count = 22;
@@ -123,7 +123,7 @@ namespace NuklearOgre
             recreateVao = true;
         }
 
-        if (requiredCmdCount < currCmdCount)
+        if (requiredCmdCount > currCmdCount)
         {
             size_t newCmdCount = std::max(requiredCmdCount, currCmdCount + (currCmdCount >> 1));
             vaoManager->destroyIndirectBuffer(mIndirectBuffer);

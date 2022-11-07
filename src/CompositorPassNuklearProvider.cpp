@@ -21,6 +21,6 @@ namespace NuklearOgre
         Ogre::SceneManager *sceneManager)
 	{
 		const CompositorPassNuklearDef *def = static_cast<const CompositorPassNuklearDef *>(definition);
-		return OGRE_NEW CompositorPassNuklear(def, defaultCamera, sceneManager, rtvDef, parentNode);
+		return OGRE_NEW CompositorPassNuklear(def, defaultCamera, sceneManager, rtvDef, parentNode, mNuklearOgre);
 	}
 }

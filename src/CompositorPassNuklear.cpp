@@ -1,5 +1,6 @@
 #include "CompositorPassNuklear.h"
 #include "NuklearRenderable.h"
+#include "NuklearOgre.h"
 #include <OgreCamera.h>
 #include <OgreSceneManager.h>
 #include <OgreHlmsManager.h>
@@ -10,11 +11,14 @@
 namespace NuklearOgre
 {
     CompositorPassNuklear::CompositorPassNuklear(const Ogre::CompositorPassDef *definition,
-                                                 Ogre::CompositorNode *parentNode,
-                                                 Ogre::HlmsManager *hlmsManager)
+                              					 Ogre::Camera *defaultCamera,
+                              					 Ogre::SceneManager *sceneManager,
+                              					 const Ogre::RenderTargetViewDef *rtv,
+                              					 Ogre::CompositorNode *parentNode,
+                              					 NuklearOgre *nuklearOgre)
         : Ogre::CompositorPass(definition, parentNode)
-        , mHlmsManager(hlmsManager)
-        , mHlmsCache(0, Ogre::HLMS_MAX, Ogre::HlmsPso())
+		, mSceneManager(sceneManager)
+		, mCamera(defaultCamera)
     {
     }
 
@@ -32,29 +36,14 @@ namespace NuklearOgre
 
 		notifyPassEarlyPreExecuteListeners();
 
-		Ogre::SceneManager *sceneManager = lodCamera->getSceneManager();
-		sceneManager->_setCamerasInProgress(Ogre::CamerasInProgress(lodCamera));
-		sceneManager->_setCurrentCompositorPass(this);
+		mSceneManager->_setCamerasInProgress(Ogre::CamerasInProgress(mCamera));
+		mSceneManager->_setCurrentCompositorPass(this);
 
-        mCommandBuffer.setCurrentRenderSystem(sceneManager->getDestinationRenderSystem());
-
-		//Fire the listener in case it wants to change anything
 		notifyPassPreExecuteListeners();
 
-		Ogre::Hlms *hlms = mHlmsManager->getHlms(Ogre::HLMS_UNLIT);
-		Ogre::HlmsCache passCache = hlms->preparePassHash(0, false, false, sceneManager);
+		mNuklearOgre->render(mSceneManager);
 
-        hlms->preCommandBufferExecution(&mCommandBuffer);
-
-        for (size_t i = 0; i < mRenderables.size(); ++i) {
-		    mRenderables[i]->addCommands(mCommandBuffer, &mHlmsCache, passCache);
-        }
-
-		mCommandBuffer.execute();
-
-		hlms->postCommandBufferExecution(&mCommandBuffer);
-
-		sceneManager->_setCurrentCompositorPass(0);
+		mSceneManager->_setCurrentCompositorPass(0);
 
 		notifyPassPosExecuteListeners();
 

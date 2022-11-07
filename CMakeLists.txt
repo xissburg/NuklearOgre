@@ -15,6 +15,7 @@ set(NuklearOgre_SOURCES
     src/NuklearRenderable.cpp
     src/CompositorPassNuklearProvider.cpp
     src/CompositorPassNuklear.cpp
+    src/NuklearOgre.cpp
 )
 
 add_library(NuklearOgre ${NuklearOgre_SOURCES})
