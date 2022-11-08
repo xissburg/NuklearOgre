@@ -16,15 +16,15 @@ namespace Demo
 {
     NuklearOgreGameState::NuklearOgreGameState(const Ogre::String &helpDescription)
         : TutorialGameState(helpDescription)
-        , mNuklearOgre(new NuklearOgre::NuklearOgre(mGraphicsSystem->getRoot(), mGraphicsSystem->getSceneManager()))
     {
 
     }
 
     void NuklearOgreGameState::createScene01(void)
     {
-
+        mNuklearOgre.reset(new NuklearOgre::NuklearOgre(mGraphicsSystem->getRoot(), mGraphicsSystem->getSceneManager()));
     }
+
     void NuklearOgreGameState::destroyScene(void)
     {
 
@@ -64,5 +64,4 @@ namespace Demo
     {
 
     }
-
 }

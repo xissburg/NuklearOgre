@@ -59,6 +59,7 @@ namespace Demo
         NuklearOgreGraphicsSystem( GameState *gameState ) :
             GraphicsSystem( gameState )
         {
+            mAlwaysAskForConfig = false;
         }
     };
 
@@ -71,7 +72,7 @@ namespace Demo
             "OgreNext backend for Nuklear immediate-mode GUI. \n"
          );
 
-        GraphicsSystem *graphicsSystem = new NuklearOgreGraphicsSystem( gfxGameState );
+        GraphicsSystem *graphicsSystem = new NuklearOgreGraphicsSystem(gfxGameState);
 
         gfxGameState->_notifyGraphicsSystem( graphicsSystem );
 

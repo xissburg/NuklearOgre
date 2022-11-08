@@ -2,6 +2,7 @@
 
 #include <OgrePrerequisites.h>
 #include <TutorialGameState.h>
+#include <memory>
 
 namespace NuklearOgre
 {
@@ -33,6 +34,6 @@ namespace Demo
 
     private:
         nk_context *mNuklearCtx;
-        NuklearOgre::NuklearOgre *mNuklearOgre;
+        std::unique_ptr<NuklearOgre::NuklearOgre> mNuklearOgre;
     };
 }
