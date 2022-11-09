@@ -8,6 +8,7 @@ set(NUKLEAR_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/../Nuklear)
 set(OGRE_SAMPLES_DIR ${CMAKE_SOURCE_DIR}/../ogre/Samples)
 
 set(OGRE_SAMPLES_SOURCE_DIR "${OGRE_SAMPLES_DIR}/2.0/Common/src")
+set( CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG=1 -D_DEBUG=1" )
 
 file( GLOB NuklearOgreDemo_SOURCES
     "${OGRE_SAMPLES_SOURCE_DIR}/*.cpp"
@@ -46,7 +47,10 @@ else ()
     add_executable(NuklearOgreDemo ${NuklearOgreDemo_SOURCES})
 endif ()
 
-set_target_properties(NuklearOgreDemo PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+# Define _DEBUG for Ogre.
+target_compile_definitions(NuklearOgreDemo PUBLIC $<$<CONFIG:Debug>:_DEBUG>)
+
+set_target_properties(NuklearOgreDemo PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 
 target_compile_features(NuklearOgreDemo PUBLIC cxx_std_11)
 
@@ -73,4 +77,8 @@ target_link_libraries(NuklearOgreDemo
     ${OGRE_RenderSystem_GL3Plus_LIBRARIES}
     ${OGRE_Overlay_LIBRARIES}
     ${OGRE_LIBRARIES}
+)
+
+add_custom_command(TARGET NuklearOgreDemo POST_BUILD
+    COMMAND cp -r ${CMAKE_SOURCE_DIR}/demo/resources ${PROJECT_BINARY_DIR}/bin
 )

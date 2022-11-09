@@ -18,12 +18,6 @@
 
 namespace NuklearOgre
 {
-    struct UIVertex {
-        float position[2];
-        float uv[2];
-        nk_byte col[4];
-    };
-
     class NuklearRenderable : public Ogre::Renderable, public Ogre::MovableObject
     {
         void setVao(Ogre::VertexArrayObject *vao)
@@ -36,8 +30,11 @@ namespace NuklearOgre
 
     public:
         NuklearRenderable(Ogre::IdType id, Ogre::ObjectMemoryManager *objectMemoryManager,
-						  Ogre::SceneManager* manager, Ogre::uint8 renderQueueId)
-            : MovableObject(id, objectMemoryManager, manager, renderQueueId)
+						  Ogre::SceneManager* sceneManager, Ogre::HlmsManager *hlmsManager,
+                          Ogre::uint8 renderQueueId, const nk_convert_config &config)
+            : MovableObject(id, objectMemoryManager, sceneManager, renderQueueId)
+            , mHlmsManager(hlmsManager)
+            , mNuklearConfig(config)
         #ifdef NK_UINT_DRAW_INDEX
             , mIndexType(Ogre::IndexType::IT_32BIT)
         #else
@@ -49,8 +46,6 @@ namespace NuklearOgre
             mObjectData.mWorldAabb->setFromAabb(aabb, mObjectData.mIndex);
             mObjectData.mLocalRadius[mObjectData.mIndex] = std::numeric_limits<Ogre::Real>::max();
             mObjectData.mWorldRadius[mObjectData.mIndex] = std::numeric_limits<Ogre::Real>::max();
-
-            setDatablock(mHlmsManager->getHlms(Ogre::HLMS_UNLIT)->getDefaultDatablock());
 
             setUseIdentityProjection(true);
             setUseIdentityView(true);
@@ -72,23 +67,12 @@ namespace NuklearOgre
             Ogre::VertexArrayObject *vao = vaoManager->createVertexArrayObject(vertexBuffers, indexBuffer, Ogre::OT_TRIANGLE_LIST);
             setVao(vao);
 
-            static const struct nk_draw_vertex_layout_element vertex_layout[] = {
-                {NK_VERTEX_POSITION, NK_FORMAT_FLOAT, NK_OFFSETOF(UIVertex, position)},
-                {NK_VERTEX_TEXCOORD, NK_FORMAT_FLOAT, NK_OFFSETOF(UIVertex, uv)},
-                {NK_VERTEX_COLOR, NK_FORMAT_R8G8B8A8, NK_OFFSETOF(UIVertex, col)},
-                {NK_VERTEX_LAYOUT_END}
-            };
-            memset(&mNuklearConfig, 0, sizeof(mNuklearConfig));
-            mNuklearConfig.vertex_layout = vertex_layout;
-            mNuklearConfig.vertex_size = sizeof(UIVertex);
-            mNuklearConfig.vertex_alignment = NK_ALIGNOF(UIVertex);
-            //mNuklearConfig.tex_null = dev->tex_null;
-            mNuklearConfig.circle_segment_count = 22;
-            mNuklearConfig.curve_segment_count = 22;
-            mNuklearConfig.arc_segment_count = 22;
-            mNuklearConfig.global_alpha = 1.0f;
-            mNuklearConfig.shape_AA = NK_ANTI_ALIASING_OFF;
-            mNuklearConfig.line_AA = NK_ANTI_ALIASING_OFF;
+            Ogre::Hlms *hlms = mHlmsManager->getHlms(Ogre::HLMS_UNLIT);
+            setDatablock(hlms->getDefaultDatablock());
+
+            nk_buffer_init_default(&mCommands);
+            nk_buffer_init_default(&mVertexBuffer);
+            nk_buffer_init_default(&mElementBuffer);
         }
 
         virtual ~NuklearRenderable()
@@ -169,34 +153,47 @@ namespace NuklearOgre
                 drawCmd = reinterpret_cast<Ogre::CbDrawIndexed *>(mIndirectBuffer->getSwBufferPtr());
             }
 
-            Ogre::Hlms *hlms = mHlmsManager->getHlms(Ogre::HLMS_UNLIT);
-            Ogre::QueuedRenderable queuedRenderable(0u, this, this);
-
-            const Ogre::HlmsCache *hlmsCache = hlms->getMaterial(*lastHlmsCache, passCache, queuedRenderable, false);
-
-            if ((*lastHlmsCache)->hash != hlmsCache->hash)
-            {
-                *commandBuffer.addCommand<Ogre::CbPipelineStateObject>() = Ogre::CbPipelineStateObject(&hlmsCache->pso);
-                *lastHlmsCache = hlmsCache;
-            }
-
             Ogre::VertexArrayObject *vao = mVaoPerLod[0].front();
             *commandBuffer.addCommand<Ogre::CbVao>() = Ogre::CbVao(vao);
             *commandBuffer.addCommand<Ogre::CbIndirectBuffer>() = Ogre::CbIndirectBuffer(mIndirectBuffer);
 
+            Ogre::Hlms *hlms = mHlmsManager->getHlms(Ogre::HLMS_UNLIT);
+            Ogre::QueuedRenderable queuedRenderable(0u, this, this);
             const nk_draw_command *cmd;
             unsigned int offset = 0;
+
+            void *prevTexturePtr = 0xffffffff;
 
             /* iterate over and execute each draw command */
             nk_draw_foreach(cmd, mNuklearCtx, &mCommands)
             {
                 if (!cmd->elem_count) continue;
 
-                /* glBindTexture(GL_TEXTURE_2D, (GLuint)cmd->texture.id);
-                glScissor((GLint)(cmd->clip_rect.x * scale.x),
-                    (GLint)((height - (GLint)(cmd->clip_rect.y + cmd->clip_rect.h)) * scale.y),
-                    (GLint)(cmd->clip_rect.w * scale.x),
-                    (GLint)(cmd->clip_rect.h * scale.y)); */
+                if (cmd->texture.ptr != prevTexturePtr) {
+                    prevTexturePtr = cmd->texture.ptr;
+
+                    // Texture changed, add drawcall for all elements processed so far.
+                    Ogre::CbDrawCallIndexed *drawCall = commandBuffer.addCommand<Ogre::CbDrawCallIndexed>();
+
+
+                    Ogre::String name = Ogre::toString(cmd->texture.ptr);
+                    Ogre::HlmsDatablock *datablock = hlms->getDatablock(name);
+
+                    if (!datablock) {
+                        Ogre::HlmsMacroblock macroblock;
+                        macroblock.mDepthCheck = false;
+                        macroblock.mDepthWrite = false;
+                        datablock = hlms->createDatablock(name, name, macroblock, {}, {});
+                        static_cast<Ogre::HlmsUnlitDatablock *>(datablock)->setTexture(0, name);
+                    }
+
+                    setDatablock(datablock);
+
+                    const Ogre::HlmsCache *hlmsCache = hlms->getMaterial(*lastHlmsCache, passCache, queuedRenderable, false);
+                    *commandBuffer.addCommand<Ogre::CbPipelineStateObject>() = Ogre::CbPipelineStateObject(&hlmsCache->pso);
+                    *lastHlmsCache = hlmsCache;
+                }
+
                 Ogre::CbDrawIndexed *drawCall = drawCmd++;
                 drawCall->primCount = cmd->elem_count;
                 drawCall->firstVertexIndex = offset;

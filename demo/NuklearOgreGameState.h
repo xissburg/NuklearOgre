@@ -4,6 +4,10 @@
 #include <TutorialGameState.h>
 #include <memory>
 
+struct nk_context;
+struct nk_font_atlas;
+struct nk_draw_null_texture;
+
 namespace NuklearOgre
 {
     class NuklearOgre;
@@ -11,7 +15,6 @@ namespace NuklearOgre
 
 namespace Demo
 {
-    struct nk_context;
 
     class NuklearOgreGameState : public TutorialGameState
     {
@@ -33,7 +36,9 @@ namespace Demo
         void keyReleased(const SDL_KeyboardEvent &arg) override;
 
     private:
-        nk_context *mNuklearCtx;
+        std::unique_ptr<nk_context> mNuklearCtx;
+        std::unique_ptr<nk_font_atlas> mFontAtlas;
+        std::unique_ptr<nk_draw_null_texture> mTexNull;
         std::unique_ptr<NuklearOgre::NuklearOgre> mNuklearOgre;
     };
 }

@@ -30,9 +30,12 @@ namespace Demo
     {
         virtual Ogre::CompositorWorkspace* setupCompositor()
         {
+            addResourceLocation(mResourcePath + "resources", "FileSystem", "Nuklear");
+            Ogre::ResourceGroupManager::getSingleton().initialiseResourceGroup("Nuklear", true);
+
             Ogre::CompositorManager2 *compositorManager = mRoot->getCompositorManager2();
             mWorkspace = compositorManager->addWorkspace( mSceneManager, mRenderWindow->getTexture(),
-                                                          mCamera, "ShadowMapDebuggingWorkspace", true );
+                                                          mCamera, "NuklearWorkspace", true );
             return mWorkspace;
         }
 
@@ -50,9 +53,7 @@ namespace Demo
             else if( *(dataFolder.end() - 1) != '/' )
                 dataFolder += "/";
 
-            dataFolder += "2.0/scripts/materials/PbsMaterials";
-
-            addResourceLocation( dataFolder, getMediaReadArchiveType(), "General" );
+            addResourceLocation(dataFolder + "2.0/scripts/materials/PbsMaterials", getMediaReadArchiveType(), "General");
         }
 
     public:

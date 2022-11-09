@@ -15,6 +15,12 @@ namespace NuklearOgre
 {
     static const Ogre::HlmsCache c_dummyCache(0, Ogre::HLMS_MAX, Ogre::HlmsPso());
 
+    struct UIVertex {
+        float position[2];
+        float uv[2];
+        nk_byte col[4];
+    };
+
     class NuklearOgre : public NuklearRenderer
     {
     public:
@@ -26,12 +32,30 @@ namespace NuklearOgre
             CompositorPassNuklearProvider *compoProvider = OGRE_NEW CompositorPassNuklearProvider(this);
             Ogre::CompositorManager2 *compositorManager = root->getCompositorManager2();
             compositorManager->setCompositorPassProvider(compoProvider);
+
+            static const struct nk_draw_vertex_layout_element vertex_layout[] = {
+                {NK_VERTEX_POSITION, NK_FORMAT_FLOAT, NK_OFFSETOF(UIVertex, position)},
+                {NK_VERTEX_TEXCOORD, NK_FORMAT_FLOAT, NK_OFFSETOF(UIVertex, uv)},
+                {NK_VERTEX_COLOR, NK_FORMAT_R8G8B8A8, NK_OFFSETOF(UIVertex, col)},
+                {NK_VERTEX_LAYOUT_END}
+            };
+            memset(&mNuklearConfig, 0, sizeof(mNuklearConfig));
+            mNuklearConfig.vertex_layout = vertex_layout;
+            mNuklearConfig.vertex_size = sizeof(UIVertex);
+            mNuklearConfig.vertex_alignment = NK_ALIGNOF(UIVertex);
+            mNuklearConfig.circle_segment_count = 22;
+            mNuklearConfig.curve_segment_count = 22;
+            mNuklearConfig.arc_segment_count = 22;
+            mNuklearConfig.global_alpha = 1.0f;
+            mNuklearConfig.shape_AA = NK_ANTI_ALIASING_OFF;
+            mNuklearConfig.line_AA = NK_ANTI_ALIASING_OFF;
         }
 
         void addContext(nk_context *ctx)
         {
             NuklearRenderable *renderable = OGRE_NEW NuklearRenderable(
-                Ogre::Id::generateNewId<NuklearRenderable>(), &mObjectMemoryManager, mSceneManager, 0u);
+                Ogre::Id::generateNewId<NuklearRenderable>(), &mObjectMemoryManager,
+                mSceneManager, mRoot->getHlmsManager(), 0u, mNuklearConfig);
             mRenderables.push_back(renderable);
         }
 
@@ -76,6 +100,11 @@ namespace NuklearOgre
             hlms->postCommandBufferExecution(&mCommandBuffer);
         }
 
+        void setTexNull(const nk_draw_null_texture &texNull)
+        {
+            mNuklearConfig.tex_null = texNull;
+        }
+
     private:
         Ogre::Root *mRoot;
         Ogre::SceneManager *mSceneManager;
@@ -83,5 +112,6 @@ namespace NuklearOgre
         Ogre::CommandBuffer mCommandBuffer;
         const Ogre::HlmsCache *mHlmsCache;
 		Ogre::ObjectMemoryManager mObjectMemoryManager;
+        nk_convert_config mNuklearConfig;
     };
 }
