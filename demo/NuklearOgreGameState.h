@@ -3,6 +3,7 @@
 #include <OgrePrerequisites.h>
 #include <TutorialGameState.h>
 #include <memory>
+#include <NuklearRenderer.h>
 
 struct nk_context;
 struct nk_font_atlas;
@@ -15,14 +16,17 @@ namespace NuklearOgre
 
 namespace Demo
 {
+    void RegisterNuklearCompositor(Ogre::Root *root, NuklearOgre::NuklearRenderer *renderer);
 
-    class NuklearOgreGameState : public TutorialGameState
+    class NuklearOgreGameState : public TutorialGameState, public NuklearOgre::NuklearRenderer
     {
     public:
         NuklearOgreGameState(const Ogre::String &helpDescription);
 
         void createScene01(void) override;
         void destroyScene(void) override;
+
+        void render(Ogre::SceneManager *) override;
 
         void update(float timeSinceLast) override;
 

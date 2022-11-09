@@ -21,6 +21,13 @@ namespace NuklearOgre
         nk_byte col[4];
     };
 
+    void RegisterCompositor(Ogre::Root *root, NuklearRenderer *renderer)
+    {
+        CompositorPassNuklearProvider *compoProvider = OGRE_NEW CompositorPassNuklearProvider(renderer);
+            Ogre::CompositorManager2 *compositorManager = root->getCompositorManager2();
+            compositorManager->setCompositorPassProvider(compoProvider);
+    }
+
     class NuklearOgre : public NuklearRenderer
     {
     public:
@@ -29,10 +36,6 @@ namespace NuklearOgre
             , mSceneManager(sceneManager)
             , mHlmsCache(&c_dummyCache)
         {
-            CompositorPassNuklearProvider *compoProvider = OGRE_NEW CompositorPassNuklearProvider(this);
-            Ogre::CompositorManager2 *compositorManager = root->getCompositorManager2();
-            compositorManager->setCompositorPassProvider(compoProvider);
-
             static const struct nk_draw_vertex_layout_element vertex_layout[] = {
                 {NK_VERTEX_POSITION, NK_FORMAT_FLOAT, NK_OFFSETOF(UIVertex, position)},
                 {NK_VERTEX_TEXCOORD, NK_FORMAT_FLOAT, NK_OFFSETOF(UIVertex, uv)},
@@ -55,7 +58,7 @@ namespace NuklearOgre
         {
             NuklearRenderable *renderable = OGRE_NEW NuklearRenderable(
                 Ogre::Id::generateNewId<NuklearRenderable>(), &mObjectMemoryManager,
-                mSceneManager, mRoot->getHlmsManager(), 0u, mNuklearConfig);
+                mSceneManager, mRoot->getHlmsManager(), 0u, ctx, mNuklearConfig);
             mRenderables.push_back(renderable);
         }
 

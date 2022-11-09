@@ -1,6 +1,7 @@
 #include <OgreBuildSettings.h>
 #include <GraphicsSystem.h>
 #include "NuklearOgreGameState.h"
+#include "NuklearRenderer.h"
 
 #include <OgreRoot.h>
 #include <OgreWindow.h>
@@ -30,6 +31,8 @@ namespace Demo
     {
         virtual Ogre::CompositorWorkspace* setupCompositor()
         {
+            RegisterNuklearCompositor(mRoot, mRenderer);
+
             addResourceLocation(mResourcePath + "resources", "FileSystem", "Nuklear");
             Ogre::ResourceGroupManager::getSingleton().initialiseResourceGroup("Nuklear", true);
 
@@ -57,11 +60,14 @@ namespace Demo
         }
 
     public:
-        NuklearOgreGraphicsSystem( GameState *gameState ) :
-            GraphicsSystem( gameState )
+        NuklearOgreGraphicsSystem(GameState *gameState, NuklearOgre::NuklearRenderer *renderer) :
+            GraphicsSystem(gameState), mRenderer(renderer)
         {
             mAlwaysAskForConfig = false;
         }
+
+    private:
+        NuklearOgre::NuklearRenderer *mRenderer;
     };
 
     void MainEntryPoints::createSystems( GameState **outGraphicsGameState,
@@ -73,7 +79,7 @@ namespace Demo
             "OgreNext backend for Nuklear immediate-mode GUI. \n"
          );
 
-        GraphicsSystem *graphicsSystem = new NuklearOgreGraphicsSystem(gfxGameState);
+        GraphicsSystem *graphicsSystem = new NuklearOgreGraphicsSystem(gfxGameState, gfxGameState);
 
         gfxGameState->_notifyGraphicsSystem( graphicsSystem );
 

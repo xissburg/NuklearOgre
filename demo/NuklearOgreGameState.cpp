@@ -1,4 +1,5 @@
 #include "NuklearOgreGameState.h"
+#include "NuklearRenderer.h"
 #include <GraphicsSystem.h>
 #include <OgreGpuResource.h>
 #include <OgreImage2.h>
@@ -18,6 +19,11 @@
 
 namespace Demo
 {
+    void RegisterNuklearCompositor(Ogre::Root *root, NuklearOgre::NuklearRenderer *renderer)
+    {
+        NuklearOgre::RegisterCompositor(root, renderer);
+    }
+
     NuklearOgreGameState::NuklearOgreGameState(const Ogre::String &helpDescription)
         : TutorialGameState(helpDescription)
     {
@@ -85,6 +91,11 @@ namespace Demo
     void NuklearOgreGameState::destroyScene(void)
     {
 
+    }
+
+    void NuklearOgreGameState::render(Ogre::SceneManager *sceneManager)
+    {
+        mNuklearOgre->render(sceneManager);
     }
 
     void NuklearOgreGameState::update(float timeSinceLast)

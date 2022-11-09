@@ -8,6 +8,7 @@
 #include <OgreMovableObject.h>
 #include <OgreRenderQueue.h>
 #include <OgreRenderable.h>
+#include <OgreHlmsUnlitDatablock.h>
 #include <CommandBuffer/OgreCommandBuffer.h>
 #include <OgreSceneManager.h>
 #include <Vao/OgreIndirectBufferPacked.h>
@@ -31,9 +32,10 @@ namespace NuklearOgre
     public:
         NuklearRenderable(Ogre::IdType id, Ogre::ObjectMemoryManager *objectMemoryManager,
 						  Ogre::SceneManager* sceneManager, Ogre::HlmsManager *hlmsManager,
-                          Ogre::uint8 renderQueueId, const nk_convert_config &config)
+                          Ogre::uint8 renderQueueId, nk_context *ctx, const nk_convert_config &config)
             : MovableObject(id, objectMemoryManager, sceneManager, renderQueueId)
             , mHlmsManager(hlmsManager)
+            , mNuklearCtx(ctx)
             , mNuklearConfig(config)
         #ifdef NK_UINT_DRAW_INDEX
             , mIndexType(Ogre::IndexType::IT_32BIT)
@@ -67,6 +69,8 @@ namespace NuklearOgre
             Ogre::VertexArrayObject *vao = vaoManager->createVertexArrayObject(vertexBuffers, indexBuffer, Ogre::OT_TRIANGLE_LIST);
             setVao(vao);
 
+            mIndirectBuffer = vaoManager->createIndirectBuffer(10 * sizeof(Ogre::CbDrawIndexed), Ogre::BT_DYNAMIC_PERSISTENT, 0, false);
+
             Ogre::Hlms *hlms = mHlmsManager->getHlms(Ogre::HLMS_UNLIT);
             setDatablock(hlms->getDefaultDatablock());
 
@@ -90,14 +94,14 @@ namespace NuklearOgre
 
             Ogre::VertexBufferPacked *vertexBuffer = mVaoPerLod[0].front()->getBaseVertexBuffer();
             size_t currVertexCount = vertexBuffer->getNumElements();
-            size_t requiredVertexCount = nk_buffer_total(&mVertexBuffer);
+            size_t requiredVertexCount = mVertexBuffer.allocated;
 
             Ogre::IndexBufferPacked *indexBuffer = mVaoPerLod[0].front()->getIndexBuffer();
             size_t currElemCount = indexBuffer->getNumElements();
-            size_t requiredElemCount = nk_buffer_total(&mElementBuffer);
+            size_t requiredElemCount = mElementBuffer.allocated;
 
             size_t currCmdCount = mIndirectBuffer->getNumElements();
-            size_t requiredCmdCount = nk_buffer_total(&mCommands);
+            size_t requiredCmdCount = mCommands.size;
 
             Ogre::VaoManager *vaoManager = mManager->getDestinationRenderSystem()->getVaoManager();
             bool recreateVao = false;
@@ -162,21 +166,32 @@ namespace NuklearOgre
             const nk_draw_command *cmd;
             unsigned int offset = 0;
 
-            void *prevTexturePtr = 0xffffffff;
+            void *prevTexturePtr = (void *)0xffffffff;
+            const Ogre::HlmsCache *hlmsCache = hlms->getMaterial(*lastHlmsCache, passCache, queuedRenderable, false);
+            *commandBuffer.addCommand<Ogre::CbPipelineStateObject>() = Ogre::CbPipelineStateObject(&hlmsCache->pso);
+            *lastHlmsCache = hlmsCache;
+
+            int baseInstanceAndIndirectBuffers = 0;
+            if (vaoManager->supportsIndirectBuffers())
+                baseInstanceAndIndirectBuffers = 2;
+            else if (vaoManager->supportsBaseInstance())
+                baseInstanceAndIndirectBuffers = 1;
+
+            Ogre::CbDrawCallIndexed *drawCall = commandBuffer.addCommand<Ogre::CbDrawCallIndexed>();
+            *drawCall = Ogre::CbDrawCallIndexed(baseInstanceAndIndirectBuffers, vao, 0);
 
             /* iterate over and execute each draw command */
             nk_draw_foreach(cmd, mNuklearCtx, &mCommands)
             {
                 if (!cmd->elem_count) continue;
 
-                if (cmd->texture.ptr != prevTexturePtr) {
+                /* if (cmd->texture.ptr != prevTexturePtr) {
                     prevTexturePtr = cmd->texture.ptr;
 
                     // Texture changed, add drawcall for all elements processed so far.
                     Ogre::CbDrawCallIndexed *drawCall = commandBuffer.addCommand<Ogre::CbDrawCallIndexed>();
 
-
-                    Ogre::String name = Ogre::toString(cmd->texture.ptr);
+                    Ogre::String name = Ogre::StringConverter::toString(cmd->texture.ptr);
                     Ogre::HlmsDatablock *datablock = hlms->getDatablock(name);
 
                     if (!datablock) {
@@ -192,14 +207,16 @@ namespace NuklearOgre
                     const Ogre::HlmsCache *hlmsCache = hlms->getMaterial(*lastHlmsCache, passCache, queuedRenderable, false);
                     *commandBuffer.addCommand<Ogre::CbPipelineStateObject>() = Ogre::CbPipelineStateObject(&hlmsCache->pso);
                     *lastHlmsCache = hlmsCache;
-                }
+                } */
 
-                Ogre::CbDrawIndexed *drawCall = drawCmd++;
-                drawCall->primCount = cmd->elem_count;
-                drawCall->firstVertexIndex = offset;
-                drawCall->instanceCount = 1u;
-                drawCall->baseVertex = 0;
-                drawCall->baseInstance = 0;
+                drawCall->numDraws++;
+
+                Ogre::CbDrawIndexed *draw = drawCmd++;
+                draw->primCount = cmd->elem_count;
+                draw->firstVertexIndex = offset;
+                draw->instanceCount = 1u;
+                draw->baseVertex = 0;
+                draw->baseInstance = 0;
                 offset += cmd->elem_count;
             }
             nk_clear(mNuklearCtx);
