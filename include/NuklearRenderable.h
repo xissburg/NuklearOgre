@@ -57,7 +57,7 @@ namespace NuklearOgre
 
             mVertexElements.reserve(4);
             mVertexElements.push_back(Ogre::VertexElement2( Ogre::VET_FLOAT2, Ogre::VES_POSITION ));
-            mVertexElements.push_back(Ogre::VertexElement2( Ogre::VET_USHORT2_NORM, Ogre::VES_TEXTURE_COORDINATES ));
+            mVertexElements.push_back(Ogre::VertexElement2( Ogre::VET_FLOAT2, Ogre::VES_TEXTURE_COORDINATES ));
             mVertexElements.push_back(Ogre::VertexElement2( Ogre::VET_UBYTE4_NORM, Ogre::VES_DIFFUSE ));
 
             Ogre::VaoManager *vaoManager = mManager->getDestinationRenderSystem()->getVaoManager();
@@ -86,7 +86,8 @@ namespace NuklearOgre
 
         void addCommands(Ogre::CommandBuffer &commandBuffer,
                          const Ogre::HlmsCache **lastHlmsCache,
-                         const Ogre::HlmsCache &passCache)
+                         const Ogre::HlmsCache &passCache,
+                         Ogre::uint32 &lastVaoName)
         {
             nk_buffer_clear(&mVertexBuffer);
             nk_buffer_clear(&mElementBuffer);
@@ -94,14 +95,14 @@ namespace NuklearOgre
 
             Ogre::VertexBufferPacked *vertexBuffer = mVaoPerLod[0].front()->getBaseVertexBuffer();
             size_t currVertexCount = vertexBuffer->getNumElements();
-            size_t requiredVertexCount = mVertexBuffer.allocated;
+            size_t requiredVertexCount = mNuklearCtx->draw_list.vertex_count;
 
             Ogre::IndexBufferPacked *indexBuffer = mVaoPerLod[0].front()->getIndexBuffer();
             size_t currElemCount = indexBuffer->getNumElements();
-            size_t requiredElemCount = mElementBuffer.allocated;
+            size_t requiredElemCount = mNuklearCtx->draw_list.element_count;
 
-            size_t currCmdCount = mIndirectBuffer->getNumElements();
-            size_t requiredCmdCount = mCommands.size;
+            size_t currCmdCount = mIndirectBuffer->getNumElements() / sizeof(Ogre::CbDrawIndexed);
+            size_t requiredCmdCount = mNuklearCtx->draw_list.cmd_count;
 
             Ogre::VaoManager *vaoManager = mManager->getDestinationRenderSystem()->getVaoManager();
             bool recreateVao = false;
@@ -137,14 +138,15 @@ namespace NuklearOgre
                 vaoManager->destroyVertexArrayObject(mVaoPerLod[0].front());
                 Ogre::VertexArrayObject *vao = vaoManager->createVertexArrayObject(vertexBuffers, indexBuffer, Ogre::OT_TRIANGLE_LIST);
                 setVao(vao);
+                lastVaoName = 0;
             }
 
             void *vertex = vertexBuffer->map(0, requiredVertexCount);
-            std::memcpy(vertex, nk_buffer_memory_const(&mVertexBuffer), requiredVertexCount);
+            std::memcpy(vertex, nk_buffer_memory_const(&mVertexBuffer), requiredVertexCount * Ogre::VaoManager::calculateVertexSize(mVertexElements));
             vertexBuffer->unmap(Ogre::UO_KEEP_PERSISTENT, 0u, requiredVertexCount);
 
             void *index = indexBuffer->map(0, requiredElemCount);
-            std::memcpy(index, nk_buffer_memory_const(&mElementBuffer), requiredElemCount);
+            std::memcpy(index, nk_buffer_memory_const(&mElementBuffer), requiredElemCount * (mIndexType == Ogre::IT_16BIT ? 2 : 4));
             indexBuffer->unmap(Ogre::UO_KEEP_PERSISTENT, 0u, requiredElemCount);
             Ogre::CbDrawIndexed *drawCmd;
 
@@ -158,18 +160,27 @@ namespace NuklearOgre
             }
 
             Ogre::VertexArrayObject *vao = mVaoPerLod[0].front();
-            *commandBuffer.addCommand<Ogre::CbVao>() = Ogre::CbVao(vao);
-            *commandBuffer.addCommand<Ogre::CbIndirectBuffer>() = Ogre::CbIndirectBuffer(mIndirectBuffer);
+
+            if (lastVaoName != vao->getVaoName())
+            {
+                *commandBuffer.addCommand<Ogre::CbVao>() = Ogre::CbVao(vao);
+                *commandBuffer.addCommand<Ogre::CbIndirectBuffer>() = Ogre::CbIndirectBuffer(mIndirectBuffer);
+                lastVaoName = vao->getVaoName();
+            }
 
             Ogre::Hlms *hlms = mHlmsManager->getHlms(Ogre::HLMS_UNLIT);
             Ogre::QueuedRenderable queuedRenderable(0u, this, this);
             const nk_draw_command *cmd;
             unsigned int offset = 0;
 
-            void *prevTexturePtr = (void *)0xffffffff;
+            //void *prevTexturePtr = (void *)0xffffffff;
             const Ogre::HlmsCache *hlmsCache = hlms->getMaterial(*lastHlmsCache, passCache, queuedRenderable, false);
-            *commandBuffer.addCommand<Ogre::CbPipelineStateObject>() = Ogre::CbPipelineStateObject(&hlmsCache->pso);
-            *lastHlmsCache = hlmsCache;
+
+            if ((*lastHlmsCache)->hash != hlmsCache->hash)
+            {
+                *commandBuffer.addCommand<Ogre::CbPipelineStateObject>() = Ogre::CbPipelineStateObject(&hlmsCache->pso);
+                *lastHlmsCache = hlmsCache;
+            }
 
             int baseInstanceAndIndirectBuffers = 0;
             if (vaoManager->supportsIndirectBuffers())

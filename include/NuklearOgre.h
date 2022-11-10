@@ -35,6 +35,7 @@ namespace NuklearOgre
             : mRoot(root)
             , mSceneManager(sceneManager)
             , mHlmsCache(&c_dummyCache)
+            , mLastVaoName(0)
         {
             static const struct nk_draw_vertex_layout_element vertex_layout[] = {
                 {NK_VERTEX_POSITION, NK_FORMAT_FLOAT, NK_OFFSETOF(UIVertex, position)},
@@ -93,7 +94,7 @@ namespace NuklearOgre
             Ogre::HlmsCache passCache = hlms->preparePassHash(0, false, false, sceneManager);
 
             for (size_t i = 0; i < mRenderables.size(); ++i) {
-                mRenderables[i]->addCommands(mCommandBuffer, &mHlmsCache, passCache);
+                mRenderables[i]->addCommands(mCommandBuffer, &mHlmsCache, passCache, mLastVaoName);
             }
 
             hlms->preCommandBufferExecution(&mCommandBuffer);
@@ -114,6 +115,7 @@ namespace NuklearOgre
         std::vector<NuklearRenderable *> mRenderables;
         Ogre::CommandBuffer mCommandBuffer;
         const Ogre::HlmsCache *mHlmsCache;
+        Ogre::uint32 mLastVaoName;
 		Ogre::ObjectMemoryManager mObjectMemoryManager;
         nk_convert_config mNuklearConfig;
     };
