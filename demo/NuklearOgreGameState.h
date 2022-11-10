@@ -1,9 +1,9 @@
 #pragma once
 
+#include <Math/Array/OgreObjectMemoryManager.h>
 #include <OgrePrerequisites.h>
 #include <TutorialGameState.h>
 #include <memory>
-#include <NuklearRenderer.h>
 
 struct nk_context;
 struct nk_font_atlas;
@@ -11,22 +11,18 @@ struct nk_draw_null_texture;
 
 namespace NuklearOgre
 {
-    class NuklearOgre;
+    class NuklearItem;
 }
 
 namespace Demo
 {
-    void RegisterNuklearCompositor(Ogre::Root *root, NuklearOgre::NuklearRenderer *renderer);
-
-    class NuklearOgreGameState : public TutorialGameState, public NuklearOgre::NuklearRenderer
+    class NuklearOgreGameState : public TutorialGameState
     {
     public:
         NuklearOgreGameState(const Ogre::String &helpDescription);
 
         void createScene01(void) override;
         void destroyScene(void) override;
-
-        void render(Ogre::SceneManager *) override;
 
         void update(float timeSinceLast) override;
 
@@ -43,6 +39,7 @@ namespace Demo
         std::unique_ptr<nk_context> mNuklearCtx;
         std::unique_ptr<nk_font_atlas> mFontAtlas;
         std::unique_ptr<nk_draw_null_texture> mTexNull;
-        std::unique_ptr<NuklearOgre::NuklearOgre> mNuklearOgre;
+        std::unique_ptr<NuklearOgre::NuklearItem> mNuklearItem;
+        std::unique_ptr<Ogre::ObjectMemoryManager> mObjectMemoryManager;
     };
 }

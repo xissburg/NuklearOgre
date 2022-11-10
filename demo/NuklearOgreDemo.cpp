@@ -1,7 +1,6 @@
 #include <OgreBuildSettings.h>
 #include <GraphicsSystem.h>
 #include "NuklearOgreGameState.h"
-#include "NuklearRenderer.h"
 
 #include <OgreRoot.h>
 #include <OgreWindow.h>
@@ -31,14 +30,9 @@ namespace Demo
     {
         virtual Ogre::CompositorWorkspace* setupCompositor()
         {
-            RegisterNuklearCompositor(mRoot, mRenderer);
-
-            addResourceLocation(mResourcePath + "resources", "FileSystem", "Nuklear");
-            Ogre::ResourceGroupManager::getSingleton().initialiseResourceGroup("Nuklear", true);
-
             Ogre::CompositorManager2 *compositorManager = mRoot->getCompositorManager2();
             mWorkspace = compositorManager->addWorkspace( mSceneManager, mRenderWindow->getTexture(),
-                                                          mCamera, "NuklearWorkspace", true );
+                                                          mCamera, "ShadowMapDebuggingWorkspace", true );
             return mWorkspace;
         }
 
@@ -56,18 +50,17 @@ namespace Demo
             else if( *(dataFolder.end() - 1) != '/' )
                 dataFolder += "/";
 
-            addResourceLocation(dataFolder + "2.0/scripts/materials/PbsMaterials", getMediaReadArchiveType(), "General");
+            dataFolder += "2.0/scripts/materials/PbsMaterials";
+
+            addResourceLocation( dataFolder, getMediaReadArchiveType(), "General" );
         }
 
     public:
-        NuklearOgreGraphicsSystem(GameState *gameState, NuklearOgre::NuklearRenderer *renderer) :
-            GraphicsSystem(gameState), mRenderer(renderer)
+        NuklearOgreGraphicsSystem(GameState *gameState) :
+            GraphicsSystem(gameState)
         {
             mAlwaysAskForConfig = false;
         }
-
-    private:
-        NuklearOgre::NuklearRenderer *mRenderer;
     };
 
     void MainEntryPoints::createSystems( GameState **outGraphicsGameState,
@@ -79,7 +72,7 @@ namespace Demo
             "OgreNext backend for Nuklear immediate-mode GUI. \n"
          );
 
-        GraphicsSystem *graphicsSystem = new NuklearOgreGraphicsSystem(gfxGameState, gfxGameState);
+        GraphicsSystem *graphicsSystem = new NuklearOgreGraphicsSystem(gfxGameState);
 
         gfxGameState->_notifyGraphicsSystem( graphicsSystem );
 

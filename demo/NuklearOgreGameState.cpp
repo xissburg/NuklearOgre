@@ -1,8 +1,9 @@
 #include "NuklearOgreGameState.h"
-#include "NuklearRenderer.h"
 #include <GraphicsSystem.h>
+#include <Math/Array/OgreObjectMemoryManager.h>
 #include <OgreGpuResource.h>
 #include <OgreImage2.h>
+#include <OgreRoot.h>
 #include <OgreTextureGpu.h>
 #include <OgreTextureGpuManager.h>
 
@@ -15,17 +16,13 @@
 #define NK_INCLUDE_DEFAULT_FONT
 #define NK_IMPLEMENTATION
 #include <nuklear.h>
-#include "NuklearOgre.h"
+#include "NuklearItem.h"
 
 namespace Demo
 {
-    void RegisterNuklearCompositor(Ogre::Root *root, NuklearOgre::NuklearRenderer *renderer)
-    {
-        NuklearOgre::RegisterCompositor(root, renderer);
-    }
-
     NuklearOgreGameState::NuklearOgreGameState(const Ogre::String &helpDescription)
         : TutorialGameState(helpDescription)
+        , mObjectMemoryManager(new Ogre::ObjectMemoryManager)
     {
 
     }
@@ -52,7 +49,7 @@ namespace Demo
                                                                   Ogre::TextureTypes::Type2D);
         texture->scheduleTransitionTo(Ogre::GpuResidency::Resident, imagePtr, true);
 
-        nk_font_atlas_end(atlas, nk_handle_ptr(static_cast<void *>(texture)), texNull);
+        nk_font_atlas_end(atlas, nk_handle_id(texture->getName().mHash), texNull);
 
         if (atlas->default_font)
             nk_style_set_font(ctx, &atlas->default_font->handle);
@@ -81,9 +78,10 @@ namespace Demo
         /*nk_style_load_all_cursors(ctx, atlas->cursors);*/
         /*nk_style_set_font(ctx, &roboto->handle);*/
 
-        mNuklearOgre.reset(new NuklearOgre::NuklearOgre(mGraphicsSystem->getRoot(), mGraphicsSystem->getSceneManager()));
-        mNuklearOgre->addContext(mNuklearCtx.get());
-        mNuklearOgre->setTexNull(*mTexNull.get());
+        mNuklearItem.reset(new NuklearOgre::NuklearItem(mObjectMemoryManager.get(),
+                                                        mGraphicsSystem->getSceneManager(),
+                                                        mGraphicsSystem->getRoot()->getHlmsManager()));
+        mNuklearItem->setTexNull(*mTexNull.get());
 
         TutorialGameState::createScene01();
     }
@@ -91,11 +89,6 @@ namespace Demo
     void NuklearOgreGameState::destroyScene(void)
     {
 
-    }
-
-    void NuklearOgreGameState::render(Ogre::SceneManager *sceneManager)
-    {
-        mNuklearOgre->render(sceneManager);
     }
 
     void NuklearOgreGameState::update(float timeSinceLast)
@@ -137,6 +130,8 @@ namespace Demo
             }
         }
         nk_end(ctx);
+
+        mNuklearItem->render(ctx);
 
         TutorialGameState::update(timeSinceLast);
     }

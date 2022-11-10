@@ -78,7 +78,3 @@ target_link_libraries(NuklearOgreDemo
     ${OGRE_Overlay_LIBRARIES}
     ${OGRE_LIBRARIES}
 )
-
-add_custom_command(TARGET NuklearOgreDemo POST_BUILD
-    COMMAND cp -r ${CMAKE_SOURCE_DIR}/demo/resources ${PROJECT_BINARY_DIR}/bin
-)
