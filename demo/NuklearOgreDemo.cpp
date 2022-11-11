@@ -2,6 +2,8 @@
 #include <GraphicsSystem.h>
 #include "NuklearOgreGameState.h"
 
+#include <OgreCamera.h>
+#include <OgreFrustum.h>
 #include <OgreRoot.h>
 #include <OgreWindow.h>
 #include <Compositor/OgreCompositorManager2.h>
@@ -30,9 +32,12 @@ namespace Demo
     {
         virtual Ogre::CompositorWorkspace* setupCompositor()
         {
+            Ogre::Camera *guiCamera = mSceneManager->createCamera("GuiCamera");
+            guiCamera->setProjectionType(Ogre::PT_ORTHOGRAPHIC);
+
             Ogre::CompositorManager2 *compositorManager = mRoot->getCompositorManager2();
             mWorkspace = compositorManager->addWorkspace( mSceneManager, mRenderWindow->getTexture(),
-                                                          mCamera, "ShadowMapDebuggingWorkspace", true );
+                                                          mCamera, "NuklearWorkspace", true );
             return mWorkspace;
         }
 
@@ -52,7 +57,8 @@ namespace Demo
 
             dataFolder += "2.0/scripts/materials/PbsMaterials";
 
-            addResourceLocation( dataFolder, getMediaReadArchiveType(), "General" );
+            addResourceLocation(dataFolder, getMediaReadArchiveType(), "General");
+            addResourceLocation(mResourcePath + "resources", "FileSystem", "Nuklear");
         }
 
     public:

@@ -40,5 +40,7 @@ namespace Demo
         std::unique_ptr<nk_font_atlas> mFontAtlas;
         std::unique_ptr<nk_draw_null_texture> mTexNull;
         std::unique_ptr<NuklearOgre::NuklearItem> mNuklearItem;
+        Ogre::Camera *mGuiCamera;
+        Ogre::SceneNode *mNuklearNode;
     };
 }

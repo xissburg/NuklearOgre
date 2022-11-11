@@ -7,7 +7,9 @@
 #include <OgreRoot.h>
 #include <OgreTextureGpu.h>
 #include <OgreTextureGpuManager.h>
+#include <OgreWindow.h>
 #include <TutorialGameState.h>
+#include <OgreCamera.h>
 #include <CameraController.h>
 
 #define NK_INCLUDE_FIXED_TYPES
@@ -83,16 +85,17 @@ namespace Demo
         Ogre::SceneManager *sceneManager = mGraphicsSystem->getSceneManager();
         Ogre::ObjectMemoryManager *memManager = &sceneManager->_getEntityMemoryManager(Ogre::SCENE_DYNAMIC);
         mNuklearItem.reset(new NuklearOgre::NuklearItem(memManager, sceneManager,
-                                                        mGraphicsSystem->getRoot()->getHlmsManager()));
+                                                        mGraphicsSystem->getRoot()->getHlmsManager(), 200u));
         mNuklearItem->setTexNull(*mTexNull.get());
 
-        Ogre::SceneNode *sceneNode = sceneManager->getRootSceneNode( Ogre::SCENE_DYNAMIC )->
-                                                    createChildSceneNode( Ogre::SCENE_DYNAMIC );
-        sceneNode->attachObject(mNuklearItem.get());
-        sceneNode->setPosition(1, 0.57f, 0);
-        sceneNode->setScale(0.01, 0.01, 0.01);
+        mNuklearNode = sceneManager->getRootSceneNode(Ogre::SCENE_DYNAMIC)->createChildSceneNode(Ogre::SCENE_DYNAMIC);
+        mNuklearNode->attachObject(mNuklearItem.get());
+        mNuklearNode->setPosition(0, 0, -101);
+        mNuklearNode->setScale(1, -1, 1);
 
         mCameraController = new CameraController( mGraphicsSystem, false );
+
+        mGuiCamera = sceneManager->findCamera("GuiCamera");
 
         TutorialGameState::createScene01();
     }
@@ -104,6 +107,12 @@ namespace Demo
 
     void NuklearOgreGameState::update(float timeSinceLast)
     {
+        auto width = mGraphicsSystem->getRenderWindow()->getTexture()->getWidth();
+        auto height = mGraphicsSystem->getRenderWindow()->getTexture()->getHeight();
+        mGuiCamera->setOrthoWindow(width, height);
+
+        mNuklearNode->setPosition(-Ogre::Real(width)/2, Ogre::Real(height)/2, -110);
+
         nk_context *ctx = mNuklearCtx.get();
 
         nk_colorf bg;

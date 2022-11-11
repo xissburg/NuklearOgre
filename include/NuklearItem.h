@@ -111,7 +111,6 @@ namespace NuklearOgre
             vertexBuffers.push_back(mVertexBuffer);
 
             Ogre::Hlms *hlms = mHlmsManager->getHlms(Ogre::HLMS_UNLIT);
-            hlms->setProperty( Ogre::HlmsBaseProp::Colour, 1 );
 
             const nk_draw_command *cmd;
             unsigned int offset = 0;
@@ -156,7 +155,10 @@ namespace NuklearOgre
                         Ogre::HlmsMacroblock macroblock;
                         macroblock.mDepthCheck = false;
                         macroblock.mDepthWrite = false;
-                        datablock = hlms->createDatablock(name, "nuklear", macroblock, {}, {});
+                        macroblock.mCullMode = Ogre::CULL_NONE;
+                        Ogre::HlmsBlendblock blendblock;
+                        blendblock.setBlendType(Ogre::SBT_TRANSPARENT_ALPHA);
+                        datablock = hlms->createDatablock(name, "nuklear", macroblock, blendblock, {});
                         static_cast<Ogre::HlmsUnlitDatablock *>(datablock)->setTexture(0, texture);
                     }
                 }
