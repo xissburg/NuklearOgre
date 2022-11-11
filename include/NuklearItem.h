@@ -111,6 +111,8 @@ namespace NuklearOgre
             vertexBuffers.push_back(mVertexBuffer);
 
             Ogre::Hlms *hlms = mHlmsManager->getHlms(Ogre::HLMS_UNLIT);
+            hlms->setProperty( Ogre::HlmsBaseProp::Colour, 1 );
+
             const nk_draw_command *cmd;
             unsigned int offset = 0;
             unsigned int cmdIndex = 0;
@@ -125,14 +127,13 @@ namespace NuklearOgre
 
                 if (cmdIndex < mNkRenderables.size())
                 {
-                    renderable = &mNkRenderables[cmdIndex];
+                    renderable = mNkRenderables[cmdIndex].get();
                     vao = renderable->getVao();
                 }
                 else
                 {
-                    mNkRenderables.emplace_back();
-                    renderable = &mNkRenderables.back();
-                    renderable->mMovable = this;
+                    mNkRenderables.emplace_back(new NuklearRenderable(this));
+                    renderable = mNkRenderables.back().get();
                     vao = vaoManager->createVertexArrayObject(vertexBuffers, mIndexBuffer, Ogre::OT_TRIANGLE_LIST);
                     renderable->setVao(vao);
                 }
@@ -141,14 +142,14 @@ namespace NuklearOgre
 
                 Ogre::HlmsDatablock *datablock;
 
-                if (cmd->texture.id == 0)
+                if (cmd->texture.ptr == 0)
                 {
                     datablock = hlms->getDefaultDatablock();
                 }
                 else
                 {
-                    Ogre::IdString name;
-                    name.mHash = cmd->texture.id;
+                    Ogre::TextureGpu *texture = reinterpret_cast<Ogre::TextureGpu *>(cmd->texture.ptr);
+                    Ogre::IdString name = texture->getName();
                     datablock = hlms->getDatablock(name);
 
                     if (!datablock) {
@@ -156,7 +157,7 @@ namespace NuklearOgre
                         macroblock.mDepthCheck = false;
                         macroblock.mDepthWrite = false;
                         datablock = hlms->createDatablock(name, "nuklear", macroblock, {}, {});
-                        static_cast<Ogre::HlmsUnlitDatablock *>(datablock)->setTexture(0, name);
+                        static_cast<Ogre::HlmsUnlitDatablock *>(datablock)->setTexture(0, texture);
                     }
                 }
 
@@ -168,11 +169,13 @@ namespace NuklearOgre
             nk_clear(ctx);
             nk_buffer_clear(&mCommands);
 
+            mNkRenderables.erase(mNkRenderables.begin() + cmdIndex, mNkRenderables.end());
+
             mRenderables.clear();
             mRenderables.reserve(mNkRenderables.size());
 
             for (size_t i = 0; i < mNkRenderables.size(); ++i) {
-                mRenderables.push_back(&mNkRenderables[i]);
+                mRenderables.push_back(mNkRenderables[i].get());
             }
         }
 
@@ -195,6 +198,6 @@ namespace NuklearOgre
         nk_convert_config mNuklearConfig;
         const Ogre::IndexType mIndexType;
         Ogre::VertexElement2Vec mVertexElements;
-        std::vector<NuklearRenderable> mNkRenderables;
+        std::vector<std::unique_ptr<NuklearRenderable>> mNkRenderables;
     };
 }

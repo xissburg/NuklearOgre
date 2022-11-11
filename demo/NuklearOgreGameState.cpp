@@ -1,11 +1,14 @@
 #include "NuklearOgreGameState.h"
 #include <GraphicsSystem.h>
 #include <Math/Array/OgreObjectMemoryManager.h>
+#include <OgreCommon.h>
 #include <OgreGpuResource.h>
 #include <OgreImage2.h>
 #include <OgreRoot.h>
 #include <OgreTextureGpu.h>
 #include <OgreTextureGpuManager.h>
+#include <TutorialGameState.h>
+#include <CameraController.h>
 
 #define NK_INCLUDE_FIXED_TYPES
 #define NK_INCLUDE_STANDARD_IO
@@ -22,7 +25,6 @@ namespace Demo
 {
     NuklearOgreGameState::NuklearOgreGameState(const Ogre::String &helpDescription)
         : TutorialGameState(helpDescription)
-        , mObjectMemoryManager(new Ogre::ObjectMemoryManager)
     {
 
     }
@@ -49,7 +51,7 @@ namespace Demo
                                                                   Ogre::TextureTypes::Type2D);
         texture->scheduleTransitionTo(Ogre::GpuResidency::Resident, imagePtr, true);
 
-        nk_font_atlas_end(atlas, nk_handle_id(texture->getName().mHash), texNull);
+        nk_font_atlas_end(atlas, nk_handle_ptr(texture), texNull);
 
         if (atlas->default_font)
             nk_style_set_font(ctx, &atlas->default_font->handle);
@@ -78,10 +80,19 @@ namespace Demo
         /*nk_style_load_all_cursors(ctx, atlas->cursors);*/
         /*nk_style_set_font(ctx, &roboto->handle);*/
 
-        mNuklearItem.reset(new NuklearOgre::NuklearItem(mObjectMemoryManager.get(),
-                                                        mGraphicsSystem->getSceneManager(),
+        Ogre::SceneManager *sceneManager = mGraphicsSystem->getSceneManager();
+        Ogre::ObjectMemoryManager *memManager = &sceneManager->_getEntityMemoryManager(Ogre::SCENE_DYNAMIC);
+        mNuklearItem.reset(new NuklearOgre::NuklearItem(memManager, sceneManager,
                                                         mGraphicsSystem->getRoot()->getHlmsManager()));
         mNuklearItem->setTexNull(*mTexNull.get());
+
+        Ogre::SceneNode *sceneNode = sceneManager->getRootSceneNode( Ogre::SCENE_DYNAMIC )->
+                                                    createChildSceneNode( Ogre::SCENE_DYNAMIC );
+        sceneNode->attachObject(mNuklearItem.get());
+        sceneNode->setPosition(1, 0.57f, 0);
+        sceneNode->setScale(0.01, 0.01, 0.01);
+
+        mCameraController = new CameraController( mGraphicsSystem, false );
 
         TutorialGameState::createScene01();
     }
@@ -138,15 +149,15 @@ namespace Demo
 
     void NuklearOgreGameState::mouseMoved(const SDL_Event &arg)
     {
-
+        TutorialGameState::mouseMoved(arg);
     }
     void NuklearOgreGameState::mousePressed(const SDL_MouseButtonEvent &arg, Ogre::uint8 id)
     {
-
+        TutorialGameState::mousePressed(arg, id);
     }
     void NuklearOgreGameState::mouseReleased(const SDL_MouseButtonEvent &arg, Ogre::uint8 id)
     {
-
+        TutorialGameState::mouseReleased(arg, id);
     }
 
     void NuklearOgreGameState::textEditing(const SDL_TextEditingEvent& arg)
@@ -155,14 +166,14 @@ namespace Demo
     }
     void NuklearOgreGameState::textInput(const SDL_TextInputEvent& arg)
     {
-
+        TutorialGameState::textInput(arg);
     }
     void NuklearOgreGameState::keyPressed(const SDL_KeyboardEvent &arg)
     {
-
+        TutorialGameState::keyPressed(arg);
     }
     void NuklearOgreGameState::keyReleased(const SDL_KeyboardEvent &arg)
     {
-
+        TutorialGameState::keyReleased(arg);
     }
 }

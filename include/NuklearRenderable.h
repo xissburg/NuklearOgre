@@ -11,8 +11,8 @@ namespace NuklearOgre
         NuklearRenderable(Ogre::MovableObject *movable = 0)
             : mMovable(movable)
         {
-            setUseIdentityProjection(true);
-            setUseIdentityView(true);
+            //setUseIdentityProjection(true);
+            //setUseIdentityView(true);
         }
 
         virtual ~NuklearRenderable()
@@ -31,11 +31,11 @@ namespace NuklearOgre
         Ogre::VertexArrayObject *getVao() {
             return mVaoPerLod[0].front();
         }
-
+/*
         bool getUseIdentityWorldMatrix(void) const override
         {
             return true;
-        }
+        } */
 
         const Ogre::LightList& getLights(void) const override
         {
