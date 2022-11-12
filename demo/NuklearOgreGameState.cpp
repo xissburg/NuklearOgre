@@ -24,6 +24,8 @@
 #include <nuklear.h>
 #include "NuklearItem.h"
 
+#define GUI_RENDER_QUEUE_ID 200u
+
 namespace Demo
 {
     NuklearOgreGameState::NuklearOgreGameState(const Ogre::String &helpDescription)
@@ -86,7 +88,7 @@ namespace Demo
         Ogre::SceneManager *sceneManager = mGraphicsSystem->getSceneManager();
         Ogre::ObjectMemoryManager *memManager = &sceneManager->_getEntityMemoryManager(Ogre::SCENE_DYNAMIC);
         mNuklearItem.reset(new NuklearOgre::NuklearItem(memManager, sceneManager,
-                                                        mGraphicsSystem->getRoot()->getHlmsManager(), 200u));
+                                                        mGraphicsSystem->getRoot()->getHlmsManager(), GUI_RENDER_QUEUE_ID));
         mNuklearItem->setTexNull(*mTexNull.get());
 
         mNuklearNode = sceneManager->getRootSceneNode(Ogre::SCENE_DYNAMIC)->createChildSceneNode(Ogre::SCENE_DYNAMIC);
