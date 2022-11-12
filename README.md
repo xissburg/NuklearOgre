@@ -10,7 +10,7 @@ Ogre-Next backend for Nuklear immediate-mode GUI.
 
 # Usage
 
-This is a header-only library made of two files: `NuklearItem.h` and `NuklearRenderable.h`. You have to invoke `#include <NuklearItem.h>` right after including `nuklear.h` with the desired build options (see [NuklearOgreGameState.cpp](https://github.com/xissburg/NuklearOgre/blob/main/demo/NuklearOgreGameState.cpp)).
+This is a header-only library. You have to invoke `#include <NuklearItem.h>` right after including `nuklear.h` with the desired build options (see [NuklearOgreGameState.cpp](https://github.com/xissburg/NuklearOgre/blob/main/demo/NuklearOgreGameState.cpp)).
 
 `NuklearOgre::NuklearItem` is an `Ogre::Movable` which, much like `Ogre::Item`, can be attached to a `Ogre::SceneNode` and placed anywhere in the world, which means the UI can be presented in a virtual screen. To present it as an overlay, a separate rendering pass with an orthographic camera is necessary. The pass should have a limited range of render queues and the gui items should be assigned to these queues. This ensures the gui item will be drawn in that render pass only. The orthographic camera must be updated when the window size changes using `Ogre::Camera::setOrthoWindow` and the scene node that holds the gui item must be positioned halfway to the top and left so it's centered on screen and its Z position must be set beyond the frustum near plane.
 
