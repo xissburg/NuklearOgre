@@ -90,8 +90,8 @@ namespace Demo
 
         mNuklearNode = sceneManager->getRootSceneNode(Ogre::SCENE_DYNAMIC)->createChildSceneNode(Ogre::SCENE_DYNAMIC);
         mNuklearNode->attachObject(mNuklearItem.get());
-        mNuklearNode->setPosition(0, 0, -101);
-        mNuklearNode->setScale(1, -1, 1);
+        mNuklearNode->setPosition(0, 0, -101); // Put it beyond camera near plane.
+        mNuklearNode->setScale(1, -1, 1); // Flip vertical.
 
         mCameraController = new CameraController( mGraphicsSystem, false );
 
@@ -102,7 +102,15 @@ namespace Demo
 
     void NuklearOgreGameState::destroyScene(void)
     {
+        Ogre::SceneManager *sceneManager = mGraphicsSystem->getSceneManager();
+        sceneManager->getRootSceneNode(Ogre::SCENE_DYNAMIC)->removeAndDestroyAllChildren();
 
+        mNuklearCtx.reset();
+        mFontAtlas.reset();
+        mTexNull.reset();
+        mNuklearItem.reset();
+
+        TutorialGameState::destroyScene();
     }
 
     void NuklearOgreGameState::update(float timeSinceLast)

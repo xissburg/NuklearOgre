@@ -7,6 +7,7 @@
 #include <OgreHlms.h>
 #include <OgreHlmsUnlit.h>
 #include <OgreHlmsUnlitDatablock.h>
+#include <Vao/OgreBufferPacked.h>
 #include <Vao/OgreVertexArrayObject.h>
 #include <Vao/OgreVaoManager.h>
 #include <Vao/OgreVertexBufferPacked.h>
@@ -46,8 +47,8 @@ namespace NuklearOgre
             mVertexElements.push_back(Ogre::VertexElement2( Ogre::VET_UBYTE4_NORM, Ogre::VES_DIFFUSE ));
 
             Ogre::VaoManager *vaoManager = mManager->getDestinationRenderSystem()->getVaoManager();
-            mVertexBuffer = vaoManager->createVertexBuffer(mVertexElements, 10, Ogre::BT_DYNAMIC_DEFAULT, 0, false);
-            mIndexBuffer = vaoManager->createIndexBuffer(mIndexType, 10, Ogre::BT_DYNAMIC_DEFAULT, 0, false);
+            mVertexBuffer = vaoManager->createVertexBuffer(mVertexElements, 10, Ogre::BT_DYNAMIC_PERSISTENT, 0, false);
+            mIndexBuffer = vaoManager->createIndexBuffer(mIndexType, 10, Ogre::BT_DYNAMIC_PERSISTENT, 0, false);
 
             nk_buffer_init_default(&mNkVertexBuffer);
             nk_buffer_init_default(&mNkElementBuffer);
@@ -71,6 +72,32 @@ namespace NuklearOgre
             mNuklearConfig.line_AA = NK_ANTI_ALIASING_OFF;
         }
 
+        ~NuklearItem()
+        {
+            if (mVertexBuffer->isCurrentlyMapped())
+            {
+                mVertexBuffer->unmap(Ogre::UO_UNMAP_ALL, 0u, mVertexBuffer->getNumElements());
+            }
+
+            if (mIndexBuffer->isCurrentlyMapped())
+            {
+                mIndexBuffer->unmap(Ogre::UO_UNMAP_ALL, 0u, mIndexBuffer->getNumElements());
+            }
+
+            Ogre::VaoManager *vaoManager = mManager->getDestinationRenderSystem()->getVaoManager();
+            vaoManager->destroyVertexBuffer(mVertexBuffer);
+            vaoManager->destroyIndexBuffer(mIndexBuffer);
+
+            for (size_t i = 0; i < mNkRenderables.size(); ++i)
+            {
+                vaoManager->destroyVertexArrayObject(mNkRenderables[i]->getVao());
+            }
+
+            nk_buffer_free(&mNkVertexBuffer);
+            nk_buffer_free(&mNkElementBuffer);
+            nk_buffer_free(&mCommands);
+        }
+
         void render(nk_context *ctx)
         {
             nk_buffer_clear(&mNkVertexBuffer);
@@ -89,23 +116,23 @@ namespace NuklearOgre
             {
                 size_t newVertexCount = std::max(requiredVertexCount, currVertexCount + (currVertexCount >> 1u));
                 vaoManager->destroyVertexBuffer(mVertexBuffer);
-                mVertexBuffer = vaoManager->createVertexBuffer(mVertexElements, newVertexCount, Ogre::BT_DYNAMIC_DEFAULT, 0, false);
+                mVertexBuffer = vaoManager->createVertexBuffer(mVertexElements, newVertexCount, Ogre::BT_DYNAMIC_PERSISTENT, 0, false);
             }
 
             if (requiredElemCount > currElemCount)
             {
                 size_t newElemCount = std::max(requiredElemCount, currElemCount + (currElemCount >> 1));
                 vaoManager->destroyIndexBuffer(mIndexBuffer);
-                mIndexBuffer = vaoManager->createIndexBuffer(mIndexType, newElemCount, Ogre::BT_DYNAMIC_DEFAULT, 0, false);
+                mIndexBuffer = vaoManager->createIndexBuffer(mIndexType, newElemCount, Ogre::BT_DYNAMIC_PERSISTENT, 0, false);
             }
 
             void *vertex = mVertexBuffer->map(0, requiredVertexCount);
             std::memcpy(vertex, nk_buffer_memory_const(&mNkVertexBuffer), requiredVertexCount * Ogre::VaoManager::calculateVertexSize(mVertexElements));
-            mVertexBuffer->unmap(Ogre::UO_UNMAP_ALL, 0u, requiredVertexCount);
+            mVertexBuffer->unmap(Ogre::UO_KEEP_PERSISTENT, 0u, requiredVertexCount);
 
             void *index = mIndexBuffer->map(0, requiredElemCount);
             std::memcpy(index, nk_buffer_memory_const(&mNkElementBuffer), requiredElemCount * (mIndexType == Ogre::IT_16BIT ? 2 : 4));
-            mIndexBuffer->unmap(Ogre::UO_UNMAP_ALL, 0u, requiredElemCount);
+            mIndexBuffer->unmap(Ogre::UO_KEEP_PERSISTENT, 0u, requiredElemCount);
 
             Ogre::VertexBufferPackedVec vertexBuffers;
             vertexBuffers.push_back(mVertexBuffer);
@@ -151,7 +178,8 @@ namespace NuklearOgre
                     Ogre::IdString name = texture->getName();
                     datablock = hlms->getDatablock(name);
 
-                    if (!datablock) {
+                    if (!datablock)
+                    {
                         Ogre::HlmsMacroblock macroblock;
                         macroblock.mDepthCheck = false;
                         macroblock.mDepthWrite = false;
@@ -171,12 +199,20 @@ namespace NuklearOgre
             nk_clear(ctx);
             nk_buffer_clear(&mCommands);
 
+            // Destroy and remove unused renderables from cache.
+            for (size_t i = cmdIndex; i < mNkRenderables.size(); ++i)
+            {
+                vaoManager->destroyVertexArrayObject(mNkRenderables[i]->getVao());
+            }
+
             mNkRenderables.erase(mNkRenderables.begin() + cmdIndex, mNkRenderables.end());
 
+            // Assign created renderables to the official `mRenderables` array.
             mRenderables.clear();
             mRenderables.reserve(mNkRenderables.size());
 
-            for (size_t i = 0; i < mNkRenderables.size(); ++i) {
+            for (size_t i = 0; i < mNkRenderables.size(); ++i)
+            {
                 mRenderables.push_back(mNkRenderables[i].get());
             }
         }

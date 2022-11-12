@@ -1,3 +1,3 @@
 # Nuklear-Ogre
 
-Ogre3D backend for Nuklear immediate-mode GUI.
+Ogre-Next backend for Nuklear immediate-mode GUI.
