@@ -111,19 +111,30 @@ namespace NuklearOgre
             size_t requiredElemCount = ctx->draw_list.element_count;
 
             Ogre::VaoManager *vaoManager = mManager->getDestinationRenderSystem()->getVaoManager();
+            bool recreateVaos = false;
 
             if (requiredVertexCount > currVertexCount)
             {
-                size_t newVertexCount = std::max(requiredVertexCount, currVertexCount + (currVertexCount >> 1u));
+                if (mVertexBuffer->isCurrentlyMapped()) {
+                    mVertexBuffer->unmap(Ogre::UO_UNMAP_ALL);
+                }
+
                 vaoManager->destroyVertexBuffer(mVertexBuffer);
+                size_t newVertexCount = std::max(requiredVertexCount, currVertexCount + (currVertexCount >> 1u));
                 mVertexBuffer = vaoManager->createVertexBuffer(mVertexElements, newVertexCount, Ogre::BT_DYNAMIC_PERSISTENT, 0, false);
+                recreateVaos = true;
             }
 
             if (requiredElemCount > currElemCount)
             {
-                size_t newElemCount = std::max(requiredElemCount, currElemCount + (currElemCount >> 1));
+                if (mIndexBuffer->isCurrentlyMapped()) {
+                    mIndexBuffer->unmap(Ogre::UO_UNMAP_ALL);
+                }
+
                 vaoManager->destroyIndexBuffer(mIndexBuffer);
+                size_t newElemCount = std::max(requiredElemCount, currElemCount + (currElemCount >> 1));
                 mIndexBuffer = vaoManager->createIndexBuffer(mIndexType, newElemCount, Ogre::BT_DYNAMIC_PERSISTENT, 0, false);
+                recreateVaos = true;
             }
 
             void *vertex = mVertexBuffer->map(0, requiredVertexCount);
@@ -155,6 +166,12 @@ namespace NuklearOgre
                 {
                     renderable = mNkRenderables[cmdIndex].get();
                     vao = renderable->getVao();
+
+                    if (recreateVaos) {
+                        vaoManager->destroyVertexArrayObject(vao);
+                        vao = vaoManager->createVertexArrayObject(vertexBuffers, mIndexBuffer, Ogre::OT_TRIANGLE_LIST);
+                        renderable->setVao(vao);
+                    }
                 }
                 else
                 {

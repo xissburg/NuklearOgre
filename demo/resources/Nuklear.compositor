@@ -6,16 +6,16 @@ compositor_node NuklearRenderingNode
 	{
 		pass render_scene
 		{
-			load
+            load
 			{
-				all				clear
-				clear_colour	0.2 0.4 0.6 1
-			}
+                all				clear
+                clear_colour	0.2 0.4 0.6 1
+            }
 			store
 			{
-				colour	store_or_resolve
-				depth	dont_care
-				stencil	dont_care
+                colour	store_or_resolve
+                depth	dont_care
+                stencil	dont_care
 			}
 			overlays	on
 			shadows		NuklearShadowNode
@@ -30,13 +30,13 @@ compositor_node NuklearRenderingNode
         {
             load
 			{
-				all		dont_care
+                all		dont_care
 			}
 			store
 			{
-				colour	store_or_resolve
-				depth	dont_care
-				stencil	dont_care
+                colour	store_or_resolve
+                depth	dont_care
+                stencil	dont_care
 			}
 
             camera "GuiCamera"
