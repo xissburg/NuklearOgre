@@ -71,8 +71,16 @@ namespace Demo
     {
         mNuklearCtx.reset(new nk_context);
         mFontAtlas.reset(new nk_font_atlas);
-        mTexNull.reset(new nk_draw_null_texture);
         nk_init_default(mNuklearCtx.get(), 0);
+
+        nk_convert_config config;
+        memset(&config, 0, sizeof(config));
+        config.circle_segment_count = 22;
+        config.curve_segment_count = 22;
+        config.arc_segment_count = 22;
+        config.global_alpha = 1.0f;
+        config.shape_AA = NK_ANTI_ALIASING_OFF;
+        config.line_AA = NK_ANTI_ALIASING_OFF;
 
         /* Load Fonts: if none of these are loaded a default font will be used  */
         /* Load Cursor: if you uncomment cursor loading please hide the cursor */
@@ -86,18 +94,9 @@ namespace Demo
         /*struct nk_font *cousine = nk_font_atlas_add_from_file(atlas, "../../../extra_font/Cousine-Regular.ttf", 13, 0);*/
         nk_context *ctx = mNuklearCtx.get();
         Ogre::TextureGpuManager *textureManager = mGraphicsSystem->getRoot()->getHlmsManager()->getRenderSystem()->getTextureGpuManager();
-        nk_font_stash_end(atlas, ctx, textureManager, mTexNull.get());
+        nk_font_stash_end(atlas, ctx, textureManager, &config.tex_null);
         /*nk_style_load_all_cursors(ctx, atlas->cursors);*/
         /*nk_style_set_font(ctx, &roboto->handle);*/
-
-        nk_convert_config config;
-        memset(&config, 0, sizeof(config));
-        config.circle_segment_count = 22;
-        config.curve_segment_count = 22;
-        config.arc_segment_count = 22;
-        config.global_alpha = 1.0f;
-        config.shape_AA = NK_ANTI_ALIASING_OFF;
-        config.line_AA = NK_ANTI_ALIASING_OFF;
 
         Ogre::SceneManager *sceneManager = mGraphicsSystem->getSceneManager();
         Ogre::ObjectMemoryManager *memManager = &sceneManager->_getEntityMemoryManager(Ogre::SCENE_DYNAMIC);
@@ -120,7 +119,6 @@ namespace Demo
         nk_free(mNuklearCtx.get());
         mNuklearCtx.reset();
         mFontAtlas.reset();
-        mTexNull.reset();
         mNuklearOgre.reset();
 
         TutorialGameState::destroyScene();

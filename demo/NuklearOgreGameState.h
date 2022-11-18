@@ -8,7 +8,6 @@
 
 struct nk_context;
 struct nk_font_atlas;
-struct nk_draw_null_texture;
 
 namespace NuklearOgre
 {
@@ -43,7 +42,6 @@ namespace Demo
     private:
         std::unique_ptr<nk_context> mNuklearCtx;
         std::unique_ptr<nk_font_atlas> mFontAtlas;
-        std::unique_ptr<nk_draw_null_texture> mTexNull;
         std::unique_ptr<NuklearOgre::NuklearOgre> mNuklearOgre;
     };
 }

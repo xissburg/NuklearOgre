@@ -1,6 +1,5 @@
 #pragma once
 
-#include <OgreMovableObject.h>
 #include <OgreRenderable.h>
 #include <OgreSceneManager.h>
 #include <OgreHlmsManager.h>
@@ -25,14 +24,13 @@
 
 namespace NuklearOgre
 {
-    class NuklearRenderable : public Ogre::Renderable, public Ogre::MovableObject
+    class NuklearRenderable : public Ogre::Renderable
     {
     public:
-        NuklearRenderable(Ogre::IdType id, Ogre::ObjectMemoryManager *objectMemoryManager,
-						  Ogre::SceneManager* sceneManager, Ogre::HlmsManager *hlmsManager,
-                          Ogre::uint8 renderQueueId, nk_context *ctx, const nk_convert_config &config,
+        NuklearRenderable(Ogre::SceneManager* sceneManager, Ogre::HlmsManager *hlmsManager,
+                          nk_context *ctx, const nk_convert_config &config,
                           const Ogre::VertexElement2Vec &vertexElements)
-            : MovableObject(id, objectMemoryManager, sceneManager, renderQueueId)
+            : mSceneManager(sceneManager)
             , mHlmsManager(hlmsManager)
             , mNuklearCtx(ctx)
             , mNuklearConfig(config)
@@ -43,16 +41,7 @@ namespace NuklearOgre
             , mIndexType(Ogre::IndexType::IT_16BIT)
         #endif
         {
-            Ogre::Aabb aabb(Ogre::Aabb::BOX_INFINITE);
-            mObjectData.mLocalAabb->setFromAabb(aabb, mObjectData.mIndex);
-            mObjectData.mWorldAabb->setFromAabb(aabb, mObjectData.mIndex);
-            mObjectData.mLocalRadius[mObjectData.mIndex] = std::numeric_limits<Ogre::Real>::max();
-            mObjectData.mWorldRadius[mObjectData.mIndex] = std::numeric_limits<Ogre::Real>::max();
-
-            // Add this renderable into the movable.
-            mRenderables.push_back(this);
-
-            Ogre::VaoManager *vaoManager = mManager->getDestinationRenderSystem()->getVaoManager();
+            Ogre::VaoManager *vaoManager = mSceneManager->getDestinationRenderSystem()->getVaoManager();
             Ogre::VertexBufferPacked *vertexBuffer = vaoManager->createVertexBuffer(mVertexElements, 10, Ogre::BT_DYNAMIC_DEFAULT, 0, false);
             Ogre::IndexBufferPacked *indexBuffer = vaoManager->createIndexBuffer(mIndexType, 10, Ogre::BT_DYNAMIC_DEFAULT, 0, false);
             mIndirectBuffer = vaoManager->createIndirectBuffer(sizeof(Ogre::CbDrawIndexed), Ogre::BT_DYNAMIC_DEFAULT, 0, false);
@@ -90,7 +79,7 @@ namespace NuklearOgre
                 mIndirectBuffer->unmap(Ogre::UO_UNMAP_ALL);
             }
 
-            Ogre::VaoManager *vaoManager = mManager->getDestinationRenderSystem()->getVaoManager();
+            Ogre::VaoManager *vaoManager = mSceneManager->getDestinationRenderSystem()->getVaoManager();
             vaoManager->destroyVertexBuffer(vertexBuffer);
             vaoManager->destroyIndexBuffer(indexBuffer);
             vaoManager->destroyIndirectBuffer(mIndirectBuffer);
@@ -122,7 +111,7 @@ namespace NuklearOgre
             size_t currCmdCount = mIndirectBuffer->getNumElements() / sizeof(Ogre::CbDrawIndexed);
             size_t requiredCmdCount = mNuklearCtx->draw_list.cmd_count;
 
-            Ogre::VaoManager *vaoManager = mManager->getDestinationRenderSystem()->getVaoManager();
+            Ogre::VaoManager *vaoManager = mSceneManager->getDestinationRenderSystem()->getVaoManager();
             bool recreateVao = false;
 
             if (requiredVertexCount > currVertexCount)
@@ -195,7 +184,7 @@ namespace NuklearOgre
             }
 
             HlmsNuklear *hlms = static_cast<HlmsNuklear *>(mHlmsManager->getHlms(Ogre::HLMS_UNLIT));
-            Ogre::QueuedRenderable queuedRenderable(0u, this, this);
+            Ogre::QueuedRenderable queuedRenderable(0u, this, nullptr);
 
             int baseInstanceAndIndirectBuffers = 0;
             if (vaoManager->supportsIndirectBuffers())
@@ -204,70 +193,66 @@ namespace NuklearOgre
                 baseInstanceAndIndirectBuffers = 1;
 
             Ogre::CbDrawCallIndexed *drawCall = nullptr;
-            Ogre::HlmsDatablock *datablock = nullptr;
 
             const nk_draw_command *cmd;
             unsigned int offset = 0;
             size_t indirectBufferOffset = mIndirectBuffer->_getFinalBufferStart();
-            intptr_t prevTexPtr = std::numeric_limits<intptr_t>::max();
 
             /* iterate over and execute each draw command */
             nk_draw_foreach(cmd, mNuklearCtx, &mCommands)
             {
                 if (!cmd->elem_count) continue;
 
-                if (reinterpret_cast<intptr_t>(cmd->texture.ptr) != prevTexPtr) {
-                    prevTexPtr = reinterpret_cast<intptr_t>(cmd->texture.ptr);
+                Ogre::HlmsDatablock *datablock = nullptr;
 
+                if (cmd->texture.ptr == 0)
+                {
+                    datablock = hlms->getDatablock("nuklear_flat");
 
-                    if (cmd->texture.ptr == 0)
+                    if (!datablock)
                     {
-                        datablock = hlms->getDatablock("nuklear_flat");
-
-                        if (!datablock)
-                        {
-                            Ogre::HlmsMacroblock macroblock;
-                            macroblock.mDepthCheck = false;
-                            macroblock.mDepthWrite = false;
-                            macroblock.mCullMode = Ogre::CULL_NONE;
-                            Ogre::HlmsBlendblock blendblock;
-                            datablock = hlms->createDatablock("nuklear_flat", "nuklear_flat", macroblock, blendblock, {});
-                        }
+                        Ogre::HlmsMacroblock macroblock;
+                        macroblock.mDepthCheck = false;
+                        macroblock.mDepthWrite = false;
+                        macroblock.mCullMode = Ogre::CULL_NONE;
+                        Ogre::HlmsBlendblock blendblock;
+                        datablock = hlms->createDatablock("nuklear_flat", "nuklear_flat", macroblock, blendblock, {});
                     }
-                    else
+                }
+                else
+                {
+                    Ogre::TextureGpu *texture = reinterpret_cast<Ogre::TextureGpu *>(cmd->texture.ptr);
+                    Ogre::IdString name = texture->getName();
+                    datablock = hlms->getDatablock(name);
+
+                    if (!datablock)
                     {
-                        Ogre::TextureGpu *texture = reinterpret_cast<Ogre::TextureGpu *>(cmd->texture.ptr);
-                        Ogre::IdString name = texture->getName();
-                        datablock = hlms->getDatablock(name);
-
-                        if (!datablock)
-                        {
-                            Ogre::HlmsMacroblock macroblock;
-                            macroblock.mDepthCheck = false;
-                            macroblock.mDepthWrite = false;
-                            macroblock.mCullMode = Ogre::CULL_NONE;
-                            Ogre::HlmsBlendblock blendblock;
-                            blendblock.setBlendType(Ogre::SBT_TRANSPARENT_ALPHA);
-                            datablock = hlms->createDatablock(name, "nuklear", macroblock, blendblock, {});
-                            static_cast<Ogre::HlmsUnlitDatablock *>(datablock)->setTexture(0, texture);
-                        }
+                        Ogre::HlmsMacroblock macroblock;
+                        macroblock.mDepthCheck = false;
+                        macroblock.mDepthWrite = false;
+                        macroblock.mCullMode = Ogre::CULL_NONE;
+                        Ogre::HlmsBlendblock blendblock;
+                        blendblock.setBlendType(Ogre::SBT_TRANSPARENT_ALPHA);
+                        datablock = hlms->createDatablock(name, "nuklear", macroblock, blendblock, {});
+                        static_cast<Ogre::HlmsUnlitDatablock *>(datablock)->setTexture(0, texture);
                     }
+                }
 
-                    setDatablock(datablock);
+                setDatablock(datablock);
 
-                    lastHlmsCacheHash = (*lastHlmsCache)->hash;
-                    const Ogre::HlmsCache *hlmsCache = hlms->getMaterial(*lastHlmsCache, passCache, queuedRenderable, false);
+                lastHlmsCacheHash = (*lastHlmsCache)->hash;
+                const Ogre::HlmsCache *hlmsCache = hlms->getMaterial(*lastHlmsCache, passCache, queuedRenderable, false);
 
-                    if (lastHlmsCacheHash != hlmsCache->hash)
-                    {
-                        *commandBuffer.addCommand<Ogre::CbPipelineStateObject>() = Ogre::CbPipelineStateObject(&hlmsCache->pso);
-                        *lastHlmsCache = hlmsCache;
-                    }
+                if (lastHlmsCacheHash != hlmsCache->hash)
+                {
+                    *commandBuffer.addCommand<Ogre::CbPipelineStateObject>() = Ogre::CbPipelineStateObject(&hlmsCache->pso);
+                    *lastHlmsCache = hlmsCache;
                 }
 
                 // TODO: add scissor command.
 
-                Ogre::uint32 baseInstance = hlms->fillBuffersForNuklear(*lastHlmsCache, static_cast<HlmsNuklearDatablock *>(datablock), lastHlmsCacheHash, &commandBuffer);
+                Ogre::uint32 baseInstance = hlms->fillBuffersForNuklear(
+                    *lastHlmsCache, static_cast<HlmsNuklearDatablock *>(datablock), lastHlmsCacheHash, &commandBuffer);
 
                 if (drawCall != commandBuffer.getLastCommand()) {
                     drawCall = commandBuffer.addCommand<Ogre::CbDrawCallIndexed>();
@@ -312,14 +297,10 @@ namespace NuklearOgre
             return mNuklearCtx;
         }
 
-        const Ogre::String& getMovableType(void) const override
-        {
-            return Ogre::BLANKSTRING;
-        }
-
         const Ogre::LightList& getLights(void) const override
         {
-            return this->queryLights(); //Return the data from our MovableObject base class.
+            static const Ogre::LightList dummy;
+            return dummy;
         }
 
         void getRenderOperation(Ogre::v1::RenderOperation& op, bool casterPass) override
@@ -353,6 +334,7 @@ namespace NuklearOgre
         }
 
     private:
+        Ogre::SceneManager *mSceneManager;
         Ogre::HlmsManager *mHlmsManager;
         Ogre::IndirectBufferPacked *mIndirectBuffer;
         nk_context *mNuklearCtx;

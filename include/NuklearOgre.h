@@ -34,7 +34,6 @@ namespace NuklearOgre
         NuklearOgre(Ogre::Root *root, Ogre::SceneManager *sceneManager, const nk_convert_config &config)
             : mRoot(root)
             , mSceneManager(sceneManager)
-            , mHlmsCache(&c_dummyCache)
             , mNuklearConfig(config)
         {
             static const struct nk_draw_vertex_layout_element vertex_layout[] = {
@@ -53,22 +52,10 @@ namespace NuklearOgre
             mVertexElements.push_back(Ogre::VertexElement2( Ogre::VET_UBYTE4_NORM, Ogre::VES_DIFFUSE ));
         }
 
-        ~NuklearOgre()
-        {
-            for (size_t i = 0; i < mRenderables.size(); ++i)
-            {
-                OGRE_DELETE mRenderables[i];
-            }
-
-            mRenderables.clear();
-        }
-
         void addContext(nk_context *ctx)
         {
-            NuklearRenderable *renderable = OGRE_NEW NuklearRenderable(
-                Ogre::Id::generateNewId<NuklearRenderable>(), &mObjectMemoryManager,
-                mSceneManager, mRoot->getHlmsManager(), 0u, ctx, mNuklearConfig, mVertexElements);
-            mRenderables.push_back(renderable);
+            mRenderables.emplace_back(
+                new NuklearRenderable(mSceneManager, mRoot->getHlmsManager(), ctx, mNuklearConfig, mVertexElements));
         }
 
         void removeContext(nk_context *ctx)
@@ -77,25 +64,11 @@ namespace NuklearOgre
            {
                 if (mRenderables[i]->getContext() == ctx)
                 {
-                    OGRE_DELETE mRenderables[i];
-                    mRenderables[i] = mRenderables.back();
+                    mRenderables[i] = std::move(mRenderables.back());
                     mRenderables.pop_back();
                     break;
                 }
            }
-        }
-
-        NuklearRenderable *getRenderable(nk_context *ctx)
-        {
-            for (size_t i = 0; i < mRenderables.size(); ++i)
-            {
-                if (mRenderables[i]->getContext() == ctx)
-                {
-                    return mRenderables[i];
-                }
-            }
-
-            return NULL;
         }
 
         void render(Ogre::SceneManager *sceneManager) override
@@ -106,10 +79,11 @@ namespace NuklearOgre
             Ogre::HlmsCache passCache = hlms->preparePassHash(0, false, false, sceneManager);
             Ogre::uint32 lastVaoName = 0;
             Ogre::uint32 lastHlmsCacheHash = 0;
+            const Ogre::HlmsCache *lastHlmsCache = &c_dummyCache;
 
             for (size_t i = 0; i < mRenderables.size(); ++i)
             {
-                mRenderables[i]->addCommands(mCommandBuffer, &mHlmsCache, passCache, lastVaoName, lastHlmsCacheHash);
+                mRenderables[i]->addCommands(mCommandBuffer, &lastHlmsCache, passCache, lastVaoName, lastHlmsCacheHash);
             }
 
             hlms->preCommandBufferExecution(&mCommandBuffer);
@@ -122,10 +96,8 @@ namespace NuklearOgre
     private:
         Ogre::Root *mRoot;
         Ogre::SceneManager *mSceneManager;
-        std::vector<NuklearRenderable *> mRenderables;
+        std::vector<std::unique_ptr<NuklearRenderable>> mRenderables;
         Ogre::CommandBuffer mCommandBuffer;
-        const Ogre::HlmsCache *mHlmsCache;
-		Ogre::ObjectMemoryManager mObjectMemoryManager;
         nk_convert_config mNuklearConfig;
         Ogre::VertexElement2Vec mVertexElements;
     };
