@@ -22,12 +22,17 @@
 #define NK_INCLUDE_DEFAULT_FONT
 #define NK_IMPLEMENTATION
 #include <nuklear.h>
-#include "NuklearItem.h"
+#include "NuklearOgre.h"
 
 #define GUI_RENDER_QUEUE_ID 200u
 
 namespace Demo
 {
+    void RegisterNuklearCompositor(Ogre::Root *root, NuklearOgre::NuklearRenderer *renderer)
+    {
+        NuklearOgre::RegisterCompositor(root, renderer);
+    }
+
     NuklearOgreGameState::NuklearOgreGameState(const Ogre::String &helpDescription)
         : TutorialGameState(helpDescription)
     {
@@ -87,18 +92,11 @@ namespace Demo
 
         Ogre::SceneManager *sceneManager = mGraphicsSystem->getSceneManager();
         Ogre::ObjectMemoryManager *memManager = &sceneManager->_getEntityMemoryManager(Ogre::SCENE_DYNAMIC);
-        mNuklearItem.reset(new NuklearOgre::NuklearItem(memManager, sceneManager,
-                                                        mGraphicsSystem->getRoot()->getHlmsManager(), GUI_RENDER_QUEUE_ID));
-        mNuklearItem->setTexNull(*mTexNull.get());
-
-        mNuklearNode = sceneManager->getRootSceneNode(Ogre::SCENE_DYNAMIC)->createChildSceneNode(Ogre::SCENE_DYNAMIC);
-        mNuklearNode->attachObject(mNuklearItem.get());
-        mNuklearNode->setPosition(0, 0, -101); // Put it beyond camera near plane.
-        mNuklearNode->setScale(1, -1, 1); // Flip vertical.
+        mNuklearOgre.reset(new NuklearOgre::NuklearOgre(mGraphicsSystem->getRoot(), mGraphicsSystem->getSceneManager()));
+        mNuklearOgre->addContext(mNuklearCtx.get());
+        mNuklearOgre->setTexNull(*mTexNull.get());
 
         mCameraController = new CameraController( mGraphicsSystem, false );
-
-        mGuiCamera = sceneManager->findCamera("GuiCamera");
 
         TutorialGameState::createScene01();
 
@@ -115,27 +113,25 @@ namespace Demo
         mNuklearCtx.reset();
         mFontAtlas.reset();
         mTexNull.reset();
-        mNuklearItem.reset();
+        mNuklearOgre.reset();
 
         TutorialGameState::destroyScene();
     }
 
+    void NuklearOgreGameState::render(Ogre::SceneManager *sceneManager)
+    {
+        mNuklearOgre->render(sceneManager);
+    }
+
     void NuklearOgreGameState::update(float timeSinceLast)
     {
-        auto width = mGraphicsSystem->getRenderWindow()->getTexture()->getWidth();
-        auto height = mGraphicsSystem->getRenderWindow()->getTexture()->getHeight();
-        mGuiCamera->setOrthoWindow(width, height);
-
-        mNuklearNode->setPosition(-Ogre::Real(width)/2, Ogre::Real(height)/2, -110);
-
         nk_context *ctx = mNuklearCtx.get();
 
         nk_input_end(ctx);
 
-        nk_colorf bg;
-        bg.r = 0.10f, bg.g = 0.18f, bg.b = 0.24f, bg.a = 1.0f;
+        static nk_colorf bg {0.10f, 0.18f, 0.24f, 1.0f};
 
-        if (nk_begin(ctx, "Demo", nk_rect(50, 50, 230, 250),
+        if (nk_begin(ctx, "Demo", nk_rect(0, 0, 230, 250),
             NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|
             NK_WINDOW_MINIMIZABLE|NK_WINDOW_TITLE))
         {
@@ -167,8 +163,6 @@ namespace Demo
             }
         }
         nk_end(ctx);
-
-        mNuklearItem->render(ctx);
 
         TutorialGameState::update(timeSinceLast);
 
@@ -210,7 +204,6 @@ namespace Demo
                 if (button.clicks > 1) {
                     nk_input_button(ctx, NK_BUTTON_DOUBLE, x, y, down);
                 }
-
                 nk_input_button(ctx, NK_BUTTON_LEFT, x, y, down);
                 break;
             case SDL_BUTTON_MIDDLE:
