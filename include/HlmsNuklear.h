@@ -87,7 +87,7 @@ namespace NuklearOgre
             float * RESTRICT_ALIAS currentMappedTexBuffer       = mCurrentMappedTexBuffer;
 
             Ogre::Matrix4 worldMat = Ogre::Matrix4::IDENTITY;
-            worldMat.makeTransform({0,0,-0}, {0.002, -0.002, 0.002}, Ogre::Quaternion::IDENTITY);
+            worldMat.makeTransform({0,0,0}, {0.002, -0.002, 0.002}, Ogre::Quaternion::IDENTITY);
 
             bool exceedsConstBuffer = (size_t)((currentMappedConstBuffer - mStartMappedConstBuffer) + 4) >
                                                                                     mCurrentConstBufferSize;

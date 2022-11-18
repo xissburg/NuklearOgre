@@ -8,5 +8,6 @@ namespace NuklearOgre
     {
     public:
         virtual void render(Ogre::SceneManager *sceneManager) = 0;
+        virtual ~NuklearRenderer() {}
     };
 }

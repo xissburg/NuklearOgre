@@ -90,11 +90,19 @@ namespace Demo
         /*nk_style_load_all_cursors(ctx, atlas->cursors);*/
         /*nk_style_set_font(ctx, &roboto->handle);*/
 
+        nk_convert_config config;
+        memset(&config, 0, sizeof(config));
+        config.circle_segment_count = 22;
+        config.curve_segment_count = 22;
+        config.arc_segment_count = 22;
+        config.global_alpha = 1.0f;
+        config.shape_AA = NK_ANTI_ALIASING_OFF;
+        config.line_AA = NK_ANTI_ALIASING_OFF;
+
         Ogre::SceneManager *sceneManager = mGraphicsSystem->getSceneManager();
         Ogre::ObjectMemoryManager *memManager = &sceneManager->_getEntityMemoryManager(Ogre::SCENE_DYNAMIC);
-        mNuklearOgre.reset(new NuklearOgre::NuklearOgre(mGraphicsSystem->getRoot(), mGraphicsSystem->getSceneManager()));
+        mNuklearOgre.reset(new NuklearOgre::NuklearOgre(mGraphicsSystem->getRoot(), mGraphicsSystem->getSceneManager(), config));
         mNuklearOgre->addContext(mNuklearCtx.get());
-        mNuklearOgre->setTexNull(*mTexNull.get());
 
         mCameraController = new CameraController( mGraphicsSystem, false );
 

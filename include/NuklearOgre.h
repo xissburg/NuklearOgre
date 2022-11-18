@@ -31,10 +31,11 @@ namespace NuklearOgre
     class NuklearOgre : public NuklearRenderer
     {
     public:
-        NuklearOgre(Ogre::Root *root, Ogre::SceneManager *sceneManager)
+        NuklearOgre(Ogre::Root *root, Ogre::SceneManager *sceneManager, const nk_convert_config &config)
             : mRoot(root)
             , mSceneManager(sceneManager)
             , mHlmsCache(&c_dummyCache)
+            , mNuklearConfig(config)
         {
             static const struct nk_draw_vertex_layout_element vertex_layout[] = {
                 {NK_VERTEX_POSITION, NK_FORMAT_FLOAT, NK_OFFSETOF(UIVertex, position)},
@@ -42,21 +43,24 @@ namespace NuklearOgre
                 {NK_VERTEX_COLOR, NK_FORMAT_R8G8B8A8, NK_OFFSETOF(UIVertex, col)},
                 {NK_VERTEX_LAYOUT_END}
             };
-            memset(&mNuklearConfig, 0, sizeof(mNuklearConfig));
             mNuklearConfig.vertex_layout = vertex_layout;
             mNuklearConfig.vertex_size = sizeof(UIVertex);
             mNuklearConfig.vertex_alignment = NK_ALIGNOF(UIVertex);
-            mNuklearConfig.circle_segment_count = 22;
-            mNuklearConfig.curve_segment_count = 22;
-            mNuklearConfig.arc_segment_count = 22;
-            mNuklearConfig.global_alpha = 1.0f;
-            mNuklearConfig.shape_AA = NK_ANTI_ALIASING_OFF;
-            mNuklearConfig.line_AA = NK_ANTI_ALIASING_OFF;
 
             mVertexElements.reserve(4);
             mVertexElements.push_back(Ogre::VertexElement2( Ogre::VET_FLOAT2, Ogre::VES_POSITION ));
             mVertexElements.push_back(Ogre::VertexElement2( Ogre::VET_FLOAT2, Ogre::VES_TEXTURE_COORDINATES ));
             mVertexElements.push_back(Ogre::VertexElement2( Ogre::VET_UBYTE4_NORM, Ogre::VES_DIFFUSE ));
+        }
+
+        ~NuklearOgre()
+        {
+            for (size_t i = 0; i < mRenderables.size(); ++i)
+            {
+                OGRE_DELETE mRenderables[i];
+            }
+
+            mRenderables.clear();
         }
 
         void addContext(nk_context *ctx)
@@ -69,8 +73,10 @@ namespace NuklearOgre
 
         void removeContext(nk_context *ctx)
         {
-           for (size_t i = 0; i < mRenderables.size(); ++i) {
-                if (mRenderables[i]->getContext() == ctx) {
+           for (size_t i = 0; i < mRenderables.size(); ++i)
+           {
+                if (mRenderables[i]->getContext() == ctx)
+                {
                     OGRE_DELETE mRenderables[i];
                     mRenderables[i] = mRenderables.back();
                     mRenderables.pop_back();
@@ -81,8 +87,10 @@ namespace NuklearOgre
 
         NuklearRenderable *getRenderable(nk_context *ctx)
         {
-            for (size_t i = 0; i < mRenderables.size(); ++i) {
-                if (mRenderables[i]->getContext() == ctx) {
+            for (size_t i = 0; i < mRenderables.size(); ++i)
+            {
+                if (mRenderables[i]->getContext() == ctx)
+                {
                     return mRenderables[i];
                 }
             }
@@ -99,7 +107,8 @@ namespace NuklearOgre
             Ogre::uint32 lastVaoName = 0;
             Ogre::uint32 lastHlmsCacheHash = 0;
 
-            for (size_t i = 0; i < mRenderables.size(); ++i) {
+            for (size_t i = 0; i < mRenderables.size(); ++i)
+            {
                 mRenderables[i]->addCommands(mCommandBuffer, &mHlmsCache, passCache, lastVaoName, lastHlmsCacheHash);
             }
 
@@ -108,11 +117,6 @@ namespace NuklearOgre
             mCommandBuffer.execute();
 
             hlms->postCommandBufferExecution(&mCommandBuffer);
-        }
-
-        void setTexNull(const nk_draw_null_texture &texNull)
-        {
-            mNuklearConfig.tex_null = texNull;
         }
 
     private:
