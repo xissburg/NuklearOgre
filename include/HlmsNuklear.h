@@ -86,8 +86,12 @@ namespace NuklearOgre
             Ogre::uint32 * RESTRICT_ALIAS currentMappedConstBuffer    = mCurrentMappedConstBuffer;
             float * RESTRICT_ALIAS currentMappedTexBuffer       = mCurrentMappedTexBuffer;
 
+            Ogre::TextureGpu *renderTarget = mRenderSystem->getCurrentRenderViewports()[0].getCurrentTarget();
+
+            Ogre::Vector3 position = Ogre::Vector3(-1, 1, 0);
+            Ogre::Vector3 scale = Ogre::Vector3(2.0 / renderTarget->getWidth(), -2.0 / renderTarget->getHeight(), 1);
             Ogre::Matrix4 worldMat = Ogre::Matrix4::IDENTITY;
-            worldMat.makeTransform({0,0,0}, {0.002, -0.002, 0.002}, Ogre::Quaternion::IDENTITY);
+            worldMat.makeTransform(position, scale, Ogre::Quaternion::IDENTITY);
 
             bool exceedsConstBuffer = (size_t)((currentMappedConstBuffer - mStartMappedConstBuffer) + 4) >
                                                                                     mCurrentConstBufferSize;
