@@ -12,6 +12,7 @@
 #include <TutorialGameState.h>
 #include <OgreCamera.h>
 #include <CameraController.h>
+#include <climits>
 
 #define NK_INCLUDE_FIXED_TYPES
 #define NK_INCLUDE_STANDARD_IO
@@ -23,6 +24,8 @@
 #define NK_IMPLEMENTATION
 #include <nuklear.h>
 #include "NuklearOgre.h"
+
+#include "../../Nuklear/demo/common/overview.c"
 
 #define GUI_RENDER_QUEUE_ID 200u
 
@@ -169,6 +172,8 @@ namespace Demo
             }
         }
         nk_end(ctx);
+
+        overview(ctx);
 
         TutorialGameState::update(timeSinceLast);
 

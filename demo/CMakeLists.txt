@@ -37,6 +37,7 @@ set(NuklearOgreDemo_SOURCES
     ${NuklearOgreDemo_SOURCES}
     NuklearOgreDemo.cpp
     NuklearOgreGameState.cpp
+    ${NUKLEAR_INCLUDE_DIR}/demo/common/overview.c
 )
 
 if (APPLE)

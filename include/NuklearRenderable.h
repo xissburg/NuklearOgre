@@ -1,5 +1,6 @@
 #pragma once
 
+#include <OgrePixelFormatGpu.h>
 #include <OgreRenderable.h>
 #include <OgreSceneManager.h>
 #include <OgreHlmsManager.h>
@@ -7,6 +8,7 @@
 #include <OgreHlmsUnlit.h>
 #include <OgreHlmsUnlitDatablock.h>
 #include <Vao/OgreBufferPacked.h>
+#include <Vao/OgreTexBufferPacked.h>
 #include <Vao/OgreVertexArrayObject.h>
 #include <Vao/OgreVaoManager.h>
 #include <Vao/OgreVertexBufferPacked.h>
@@ -45,6 +47,7 @@ namespace NuklearOgre
             Ogre::VertexBufferPacked *vertexBuffer = vaoManager->createVertexBuffer(mVertexElements, 10, Ogre::BT_DYNAMIC_DEFAULT, 0, false);
             Ogre::IndexBufferPacked *indexBuffer = vaoManager->createIndexBuffer(mIndexType, 10, Ogre::BT_DYNAMIC_DEFAULT, 0, false);
             mIndirectBuffer = vaoManager->createIndirectBuffer(sizeof(Ogre::CbDrawIndexed), Ogre::BT_DYNAMIC_DEFAULT, 0, false);
+            mClipRectBuffer = vaoManager->createTexBuffer(Ogre::PFG_RGBA32_FLOAT, 4 * 4, Ogre::BT_DYNAMIC_DEFAULT, 0, false);
 
             Ogre::VertexBufferPackedVec vertexBuffers;
             vertexBuffers.push_back(vertexBuffer);
@@ -154,6 +157,9 @@ namespace NuklearOgre
                 size_t newCmdCount = std::max(requiredCmdCount, currCmdCount + (currCmdCount >> 1));
                 size_t newCmdSize = newCmdCount * sizeof(Ogre::CbDrawIndexed);
                 mIndirectBuffer = vaoManager->createIndirectBuffer(newCmdSize, Ogre::BT_DYNAMIC_DEFAULT, 0, false);
+
+                vaoManager->destroyTexBuffer(mClipRectBuffer);
+                mClipRectBuffer = vaoManager->createTexBuffer(Ogre::PFG_RGBA32_FLOAT, newCmdCount * 4 * 4, Ogre::BT_DYNAMIC_DEFAULT, 0, false);
             }
 
             void *vertex = vertexBuffer->map(0, requiredVertexCount);
@@ -174,6 +180,12 @@ namespace NuklearOgre
                 drawCmd = reinterpret_cast<Ogre::CbDrawIndexed *>(mIndirectBuffer->getSwBufferPtr());
             }
 
+            HlmsNuklear *hlms = static_cast<HlmsNuklear *>(mHlmsManager->getHlms(Ogre::HLMS_UNLIT));
+
+            float *clipRect = reinterpret_cast<float *>(mClipRectBuffer->map(0, requiredCmdCount * 4 * 4));
+            *commandBuffer.addCommand<Ogre::CbShaderBuffer>() =
+                Ogre::CbShaderBuffer(Ogre::VertexShader, hlms->getClipRectBuffTexUnit(), mClipRectBuffer, 0, requiredCmdCount * 4 * 4);
+
             Ogre::VertexArrayObject *vao = mVaoPerLod[0].front();
 
             if (lastVaoName != vao->getVaoName())
@@ -183,7 +195,6 @@ namespace NuklearOgre
                 lastVaoName = vao->getVaoName();
             }
 
-            HlmsNuklear *hlms = static_cast<HlmsNuklear *>(mHlmsManager->getHlms(Ogre::HLMS_UNLIT));
             Ogre::QueuedRenderable queuedRenderable(0u, this, nullptr);
 
             int baseInstanceAndIndirectBuffers = 0;
@@ -196,12 +207,18 @@ namespace NuklearOgre
 
             const nk_draw_command *cmd;
             unsigned int offset = 0;
+            Ogre::uint32 cmdIdx = 0;
             size_t indirectBufferOffset = mIndirectBuffer->_getFinalBufferStart();
 
             /* iterate over and execute each draw command */
             nk_draw_foreach(cmd, mNuklearCtx, &mCommands)
             {
                 if (!cmd->elem_count) continue;
+
+                *clipRect++ = cmd->clip_rect.x;
+                *clipRect++ = cmd->clip_rect.y;
+                *clipRect++ = cmd->clip_rect.x + cmd->clip_rect.w;
+                *clipRect++ = cmd->clip_rect.y + cmd->clip_rect.h;
 
                 Ogre::HlmsDatablock *datablock = nullptr;
 
@@ -249,10 +266,8 @@ namespace NuklearOgre
                     *lastHlmsCache = hlmsCache;
                 }
 
-                // TODO: add scissor command.
-
                 Ogre::uint32 baseInstance = hlms->fillBuffersForNuklear(
-                    *lastHlmsCache, static_cast<HlmsNuklearDatablock *>(datablock), lastHlmsCacheHash, &commandBuffer);
+                    *lastHlmsCache, static_cast<HlmsNuklearDatablock *>(datablock), lastHlmsCacheHash, &commandBuffer, cmdIdx);
 
                 if (drawCall != commandBuffer.getLastCommand()) {
                     drawCall = commandBuffer.addCommand<Ogre::CbDrawCallIndexed>();
@@ -269,9 +284,12 @@ namespace NuklearOgre
                 draw->baseVertex = vao->getBaseVertexBuffer()->_getFinalBufferStart();
                 draw->baseInstance = baseInstance;
                 offset += cmd->elem_count;
+                ++cmdIdx;
             }
             nk_clear(mNuklearCtx);
             nk_buffer_clear(&mCommands);
+
+            mClipRectBuffer->unmap(Ogre::UO_UNMAP_ALL, 0u, requiredCmdCount);
 
             if (vaoManager->supportsIndirectBuffers())
             {
@@ -337,6 +355,7 @@ namespace NuklearOgre
         Ogre::SceneManager *mSceneManager;
         Ogre::HlmsManager *mHlmsManager;
         Ogre::IndirectBufferPacked *mIndirectBuffer;
+        Ogre::TexBufferPacked *mClipRectBuffer;
         nk_context *mNuklearCtx;
         nk_buffer mNkVertexBuffer, mNkElementBuffer;
         nk_buffer mCommands;

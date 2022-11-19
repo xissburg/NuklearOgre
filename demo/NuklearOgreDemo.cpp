@@ -119,6 +119,13 @@ namespace Demo
                 //Create and register the unlit Hlms
                 hlmsUnlit = OGRE_NEW NuklearOgre::HlmsNuklear( archiveUnlit, &archiveUnlitLibraryFolders );
                 Ogre::Root::getSingleton().getHlmsManager()->registerHlms( hlmsUnlit );
+
+                // Load custom Nuklear shader pieces.
+                Ogre::ArchiveVec libraryUnlit = hlmsUnlit->getPiecesLibraryAsArchiveVec();
+                libraryUnlit.push_back( Ogre::ArchiveManager::getSingletonPtr()->load(
+                                        mResourcePath + "resources/Hlms/",
+                                        getMediaReadArchiveType(), true ) );
+                hlmsUnlit->reloadFrom( archiveUnlit, &libraryUnlit );
             }
 
             {
