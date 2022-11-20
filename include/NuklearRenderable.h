@@ -60,6 +60,8 @@ namespace NuklearOgre
 
             setUseIdentityProjection(true);
             setUseIdentityView(true);
+
+            getUserObjectBindings().setUserAny("nuklear", Ogre::Any(1));
         }
 
         ~NuklearRenderable()

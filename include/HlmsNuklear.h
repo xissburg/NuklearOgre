@@ -34,13 +34,12 @@ namespace NuklearOgre
         void calculateHashForPreCreate(Ogre::Renderable *renderable, Ogre::PiecesMap *inOutPieces) override
         {
             Ogre::HlmsUnlit::calculateHashForPreCreate(renderable, inOutPieces);
-            //NuklearRenderable *nuklearRenderable = dynamic_cast<NuklearRenderable *>(renderable);
 
-            //if (nuklearRenderable)
-            //{
+            if (!renderable->getUserObjectBindings().getUserAny("nuklear").isEmpty())
+            {
                 setProperty("nuklear", 1);
                 setProperty( Ogre::HlmsBaseProp::PsoClipDistances, 4 );
-            //}
+            }
         }
 
         Ogre::int32 mClipRectTexUnit {0};
