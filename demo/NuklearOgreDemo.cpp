@@ -77,9 +77,7 @@ namespace Demo
     {
         Ogre::CompositorWorkspace* setupCompositor() override
         {
-            mNuklearCtx.reset(new nk_context);
-            mFontAtlas.reset(new nk_font_atlas);
-            nk_init_default(mNuklearCtx.get(), 0);
+            nk_init_default(&mNuklearCtx, 0);
 
             nk_convert_config config;
             memset(&config, 0, sizeof(config));
@@ -92,7 +90,7 @@ namespace Demo
 
             /* Load Fonts: if none of these are loaded a default font will be used  */
             /* Load Cursor: if you uncomment cursor loading please hide the cursor */
-            nk_font_atlas *atlas = mFontAtlas.get();
+            nk_font_atlas *atlas = &mFontAtlas;
             nk_font_stash_begin(atlas);
             /*struct nk_font *droid = nk_font_atlas_add_from_file(atlas, "../../../extra_font/DroidSans.ttf", 14, 0);*/
             /*struct nk_font *roboto = nk_font_atlas_add_from_file(atlas, "../../../extra_font/Roboto-Regular.ttf", 16, 0);*/
@@ -100,17 +98,17 @@ namespace Demo
             /*struct nk_font *clean = nk_font_atlas_add_from_file(atlas, "../../../extra_font/ProggyClean.ttf", 12, 0);*/
             /*struct nk_font *tiny = nk_font_atlas_add_from_file(atlas, "../../../extra_font/ProggyTiny.ttf", 10, 0);*/
             /*struct nk_font *cousine = nk_font_atlas_add_from_file(atlas, "../../../extra_font/Cousine-Regular.ttf", 13, 0);*/
-            nk_context *ctx = mNuklearCtx.get();
+            nk_context *ctx = &mNuklearCtx;
             Ogre::TextureGpuManager *textureManager = getRoot()->getHlmsManager()->getRenderSystem()->getTextureGpuManager();
-            nk_font_stash_end(atlas, ctx, textureManager, &config.tex_null);
+            nk_font_stash_end(atlas, &mNuklearCtx, textureManager, &config.tex_null);
             /*nk_style_load_all_cursors(ctx, atlas->cursors);*/
             /*nk_style_set_font(ctx, &roboto->handle);*/
 
             mNuklearRenderer.reset(new NuklearOgre::NuklearRenderer(getRoot(), getSceneManager(), config));
-            mNuklearRenderer->addContext(mNuklearCtx.get());
+            mNuklearRenderer->addContext(&mNuklearCtx);
 
             NuklearOgreGameState *gameState = static_cast<NuklearOgreGameState *>(mCurrentGameState);
-            gameState->mNuklearCtx = mNuklearCtx.get();
+            gameState->mNuklearCtx = ctx;
             gameState->mNuklearRenderer = mNuklearRenderer.get();
 
             NuklearOgre::RegisterCompositor(mRoot, mNuklearRenderer.get());
@@ -250,10 +248,8 @@ namespace Demo
 
         void deinitialize() override
         {
-            nk_font_atlas_clear(mFontAtlas.get());
-            nk_free(mNuklearCtx.get());
-            mNuklearCtx.reset();
-            mFontAtlas.reset();
+            nk_font_atlas_clear(&mFontAtlas);
+            nk_free(&mNuklearCtx);
             mNuklearRenderer.reset();
 
             GraphicsSystem::deinitialize();
@@ -267,8 +263,8 @@ namespace Demo
         }
 
     private:
-        std::unique_ptr<nk_context> mNuklearCtx;
-        std::unique_ptr<nk_font_atlas> mFontAtlas;
+        nk_context mNuklearCtx;
+        nk_font_atlas mFontAtlas;
         std::unique_ptr<NuklearOgre::NuklearRenderer> mNuklearRenderer;
     };
 
