@@ -1,21 +1,24 @@
+@property( nuklear )
+
 @piece( custom_vs_uniformDeclaration )
-    @property( syntax == glsl )
-	uniform samplerBuffer clipRectBuf;
-    @end
-
-    @property( syntax == hlsl )
-	Buffer<float4> clipRectBuf : register(t@value(clipRectBuf));
-    @end
-
-    @property( syntax == metal )
-    , device const float4 *clipRectBuf	[[buffer(TEX_SLOT_START+@value(clipRectBuf))]]
-    @end
+    #define masterMatrix worldViewProj
 @end
 
+@piece( custom_vs_preExecution )
+    uint matStart = finalDrawId * 5u;
+    float4x4 worldViewProj;
+    worldViewProj[0] = readOnlyFetch( worldMatBuf, matStart );
+    worldViewProj[1] = readOnlyFetch( worldMatBuf, matStart + 1 );
+    worldViewProj[2] = readOnlyFetch( worldMatBuf, matStart + 2 );
+    worldViewProj[3] = readOnlyFetch( worldMatBuf, matStart + 3 );
+@end // custom_vs_preExecution
+
 @piece( custom_vs_posExecution )
-    float4 clipRect = bufferFetch( clipRectBuf, int( worldMaterialIdx[inVs_drawId].w ) );
+    float4 clipRect = readOnlyFetch( worldMatBuf, matStart + 4 );
     gl_ClipDistance[0] = vertex.x - clipRect.x;
     gl_ClipDistance[1] = clipRect.z - vertex.x;
     gl_ClipDistance[2] = vertex.y - clipRect.y;
     gl_ClipDistance[3] = clipRect.w - vertex.y;
-@end
+@end // custom_vs_posExecution
+
+@end // nuklear

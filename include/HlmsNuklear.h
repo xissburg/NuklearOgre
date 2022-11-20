@@ -42,31 +42,11 @@ namespace NuklearOgre
             }
         }
 
-        Ogre::int32 mClipRectTexUnit {0};
-
-        void notifyPropertiesMergedPreGenerationStep() override
-        {
-            Ogre::HlmsUnlit::notifyPropertiesMergedPreGenerationStep();
-
-            if (getProperty("nuklear") != 0)
-            {
-                const Ogre::int32 numTextures = getProperty(Ogre::UnlitProperty::NumTextures);
-                const Ogre::int32 samplerStateStart = getProperty(Ogre::UnlitProperty::SamplerStateStart);
-                mClipRectTexUnit = samplerStateStart + numTextures;
-                setTextureReg(Ogre::VertexShader, "clipRectBuf", getClipRectBuffTexUnit());
-            }
-        }
-
-        Ogre::int32 getClipRectBuffTexUnit() const
-        {
-            return mClipRectTexUnit;
-        }
-
         Ogre::uint32 fillBuffersForNuklear(const Ogre::HlmsCache *cache,
                                            const HlmsNuklearDatablock *datablock,
                                            Ogre::uint32 lastCacheHash,
                                            Ogre::CommandBuffer *commandBuffer,
-                                           Ogre::uint32 commandIndex)
+                                           const Ogre::Vector4 &clipRect)
         {
             if( OGRE_EXTRACT_HLMS_TYPE_FROM_CACHE_HASH( lastCacheHash ) != mType )
             {
@@ -157,7 +137,6 @@ namespace NuklearOgre
             *reinterpret_cast<float * RESTRICT_ALIAS>( currentMappedConstBuffer + 1 ) =
                 datablock->mShadowConstantBias * mConstantBiasScale;
             *(currentMappedConstBuffer+2) = useIdentityProjection;
-            *(currentMappedConstBuffer+3) = commandIndex;
             currentMappedConstBuffer += 4;
 
             //mat4 worldViewProj
@@ -175,6 +154,10 @@ namespace NuklearOgre
                 }
             }
     #endif
+
+            //vec4 clipRect
+            memcpy(currentMappedTexBuffer, &clipRect, sizeof(Ogre::Vector4));
+            currentMappedTexBuffer += 4;
 
             //---------------------------------------------------------------------------
             //                          ---- PIXEL SHADER ----
