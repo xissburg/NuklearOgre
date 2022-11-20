@@ -6,19 +6,15 @@
 
 namespace NuklearOgre
 {
-    class NuklearOgre;
-
     class CompositorPassNuklear : public Ogre::CompositorPass
     {
     public:
         CompositorPassNuklear(const Ogre::CompositorPassDef *definition,
                               Ogre::Camera *defaultCamera,
-                              Ogre::SceneManager *sceneManager,
                               const Ogre::RenderTargetViewDef *rtv,
                               Ogre::CompositorNode *parentNode,
                               NuklearRenderer *renderer)
             : Ogre::CompositorPass(definition, parentNode)
-            , mSceneManager(sceneManager)
             , mCamera(defaultCamera)
             , mRenderer(renderer)
         {
@@ -38,14 +34,15 @@ namespace NuklearOgre
 
             notifyPassEarlyPreExecuteListeners();
 
-            mSceneManager->_setCamerasInProgress(Ogre::CamerasInProgress(mCamera));
-            mSceneManager->_setCurrentCompositorPass(this);
+            Ogre::SceneManager *sceneManager = mRenderer->getSceneManager();
+            sceneManager->_setCamerasInProgress(Ogre::CamerasInProgress(mCamera));
+            sceneManager->_setCurrentCompositorPass(this);
 
             notifyPassPreExecuteListeners();
 
-            mRenderer->render(mSceneManager);
+            mRenderer->render();
 
-            mSceneManager->_setCurrentCompositorPass(0);
+            sceneManager->_setCurrentCompositorPass(0);
 
             notifyPassPosExecuteListeners();
 
@@ -54,7 +51,6 @@ namespace NuklearOgre
 
     private:
         NuklearRenderer *mRenderer;
-        Ogre::SceneManager *mSceneManager;
         Ogre::Camera *mCamera;
     };
 }

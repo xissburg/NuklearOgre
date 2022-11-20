@@ -1,6 +1,7 @@
 #pragma once
 
 #include <OgreHlmsUnlitDatablock.h>
+
 namespace NuklearOgre
 {
     class HlmsNuklearDatablock : public Ogre::HlmsUnlitDatablock

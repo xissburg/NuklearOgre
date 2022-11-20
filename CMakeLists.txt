@@ -16,7 +16,6 @@ set(NuklearOgre_SOURCES
     include/CompositorPassNuklearProvider.h
     include/NuklearOgre.h
     include/NuklearRenderable.h
-    include/NuklearRenderer.h
 )
 
 add_library(NuklearOgre INTERFACE)

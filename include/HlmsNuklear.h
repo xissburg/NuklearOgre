@@ -2,13 +2,11 @@
 
 #include <CommandBuffer/OgreCbShaderBuffer.h>
 #include <OgreDescriptorSetTexture.h>
-#include <OgreHlmsCommon.h>
 #include <OgreHlmsListener.h>
 #include <OgreHlmsUnlit.h>
 #include <OgreHlmsUnlitDatablock.h>
 #include <OgreMatrix4.h>
 #include <OgreQuaternion.h>
-#include <OgreUnlitProperty.h>
 #include <Vao/OgreConstBufferPacked.h>
 #include <Vao/OgreTexBufferPacked.h>
 #include <CommandBuffer/OgreCommandBuffer.h>

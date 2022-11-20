@@ -5,7 +5,9 @@
 
 #include <OgreCamera.h>
 #include <OgreFrustum.h>
+#include <OgreImage2.h>
 #include <OgreRoot.h>
+#include <OgreTextureGpuManager.h>
 #include <OgreWindow.h>
 #include <Compositor/OgreCompositorManager2.h>
 #include <OgreConfigFile.h>
@@ -17,6 +19,17 @@
 #include <MainEntryPointHelper.h>
 #include <System/Android/AndroidSystems.h>
 #include <System/MainEntryPoints.h>
+
+#define NK_INCLUDE_FIXED_TYPES
+#define NK_INCLUDE_STANDARD_IO
+#define NK_INCLUDE_STANDARD_VARARGS
+#define NK_INCLUDE_DEFAULT_ALLOCATOR
+#define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
+#define NK_INCLUDE_FONT_BAKING
+#define NK_INCLUDE_DEFAULT_FONT
+#define NK_IMPLEMENTATION
+#include <nuklear.h>
+#include <RegisterCompositor.h>
 
 #if OGRE_PLATFORM != OGRE_PLATFORM_ANDROID
 #if OGRE_PLATFORM == OGRE_PLATFORM_WIN32
@@ -32,11 +45,75 @@ int mainApp( int argc, const char *argv[] )
 
 namespace Demo
 {
+    void nk_font_stash_begin(nk_font_atlas *atlas)
+    {
+        nk_font_atlas_init_default(atlas);
+        nk_font_atlas_begin(atlas);
+    }
+
+    void nk_font_stash_end(nk_font_atlas *atlas, nk_context *ctx,
+                           Ogre::TextureGpuManager *textureManager,
+                           nk_draw_null_texture *texNull)
+    {
+        const void *image; int w, h;
+        image = nk_font_atlas_bake(atlas, &w, &h, NK_FONT_ATLAS_RGBA32);
+
+        Ogre::Image2 *imagePtr = new Ogre::Image2;
+        imagePtr->loadDynamicImage(const_cast<void *>(image), w, h, 1, Ogre::TextureTypes::Type2D, Ogre::PFG_RGBA8_UNORM_SRGB, false, 1);
+
+        Ogre::TextureGpu *texture = textureManager->createTexture("FontAtlas", Ogre::GpuPageOutStrategy::Discard,
+                                                                  Ogre::TextureFlags::AutomaticBatching |
+                                                                  Ogre::TextureFlags::PrefersLoadingFromFileAsSRGB,
+                                                                  Ogre::TextureTypes::Type2D);
+        texture->scheduleTransitionTo(Ogre::GpuResidency::Resident, imagePtr, true);
+
+        nk_font_atlas_end(atlas, nk_handle_ptr(texture), texNull);
+
+        if (atlas->default_font)
+            nk_style_set_font(ctx, &atlas->default_font->handle);
+    }
+
     class NuklearOgreGraphicsSystem : public GraphicsSystem
     {
         Ogre::CompositorWorkspace* setupCompositor() override
         {
-            RegisterNuklearCompositor(mRoot, mRenderer);
+            mNuklearCtx.reset(new nk_context);
+            mFontAtlas.reset(new nk_font_atlas);
+            nk_init_default(mNuklearCtx.get(), 0);
+
+            nk_convert_config config;
+            memset(&config, 0, sizeof(config));
+            config.circle_segment_count = 22;
+            config.curve_segment_count = 22;
+            config.arc_segment_count = 22;
+            config.global_alpha = 1.0f;
+            config.shape_AA = NK_ANTI_ALIASING_OFF;
+            config.line_AA = NK_ANTI_ALIASING_OFF;
+
+            /* Load Fonts: if none of these are loaded a default font will be used  */
+            /* Load Cursor: if you uncomment cursor loading please hide the cursor */
+            nk_font_atlas *atlas = mFontAtlas.get();
+            nk_font_stash_begin(atlas);
+            /*struct nk_font *droid = nk_font_atlas_add_from_file(atlas, "../../../extra_font/DroidSans.ttf", 14, 0);*/
+            /*struct nk_font *roboto = nk_font_atlas_add_from_file(atlas, "../../../extra_font/Roboto-Regular.ttf", 16, 0);*/
+            /*struct nk_font *future = nk_font_atlas_add_from_file(atlas, "../../../extra_font/kenvector_future_thin.ttf", 13, 0);*/
+            /*struct nk_font *clean = nk_font_atlas_add_from_file(atlas, "../../../extra_font/ProggyClean.ttf", 12, 0);*/
+            /*struct nk_font *tiny = nk_font_atlas_add_from_file(atlas, "../../../extra_font/ProggyTiny.ttf", 10, 0);*/
+            /*struct nk_font *cousine = nk_font_atlas_add_from_file(atlas, "../../../extra_font/Cousine-Regular.ttf", 13, 0);*/
+            nk_context *ctx = mNuklearCtx.get();
+            Ogre::TextureGpuManager *textureManager = getRoot()->getHlmsManager()->getRenderSystem()->getTextureGpuManager();
+            nk_font_stash_end(atlas, ctx, textureManager, &config.tex_null);
+            /*nk_style_load_all_cursors(ctx, atlas->cursors);*/
+            /*nk_style_set_font(ctx, &roboto->handle);*/
+
+            mNuklearRenderer.reset(new NuklearOgre::NuklearRenderer(getRoot(), getSceneManager(), config));
+            mNuklearRenderer->addContext(mNuklearCtx.get());
+
+            NuklearOgreGameState *gameState = static_cast<NuklearOgreGameState *>(mCurrentGameState);
+            gameState->mNuklearCtx = mNuklearCtx.get();
+            gameState->mNuklearRenderer = mNuklearRenderer.get();
+
+            NuklearOgre::RegisterCompositor(mRoot, mNuklearRenderer.get());
 
             addResourceLocation(mResourcePath + "resources", "FileSystem", "Nuklear");
             Ogre::ResourceGroupManager::getSingleton().initialiseResourceGroup("Nuklear", true);
@@ -171,15 +248,28 @@ namespace Demo
             }
         }
 
+        void deinitialize() override
+        {
+            nk_font_atlas_clear(mFontAtlas.get());
+            nk_free(mNuklearCtx.get());
+            mNuklearCtx.reset();
+            mFontAtlas.reset();
+            mNuklearRenderer.reset();
+
+            GraphicsSystem::deinitialize();
+        }
+
     public:
-        NuklearOgreGraphicsSystem(GameState *gameState, NuklearOgre::NuklearRenderer *renderer) :
-            GraphicsSystem(gameState), mRenderer(renderer)
+        NuklearOgreGraphicsSystem(GameState *gameState) :
+            GraphicsSystem(gameState)
         {
             mAlwaysAskForConfig = false;
         }
 
     private:
-        NuklearOgre::NuklearRenderer *mRenderer;
+        std::unique_ptr<nk_context> mNuklearCtx;
+        std::unique_ptr<nk_font_atlas> mFontAtlas;
+        std::unique_ptr<NuklearOgre::NuklearRenderer> mNuklearRenderer;
     };
 
     void MainEntryPoints::createSystems( GameState **outGraphicsGameState,
@@ -191,7 +281,7 @@ namespace Demo
             "OgreNext backend for Nuklear immediate-mode GUI. \n"
          );
 
-        GraphicsSystem *graphicsSystem = new NuklearOgreGraphicsSystem(gfxGameState, gfxGameState);
+        GraphicsSystem *graphicsSystem = new NuklearOgreGraphicsSystem(gfxGameState);
 
         gfxGameState->_notifyGraphicsSystem( graphicsSystem );
 

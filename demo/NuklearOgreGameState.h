@@ -4,29 +4,22 @@
 #include <OgrePrerequisites.h>
 #include <TutorialGameState.h>
 #include <memory>
-#include <NuklearRenderer.h>
 
 struct nk_context;
-struct nk_font_atlas;
 
 namespace NuklearOgre
 {
-    class NuklearOgre;
+    class NuklearRenderer;
 }
 
 namespace Demo
 {
-    void RegisterNuklearCompositor(Ogre::Root *root, NuklearOgre::NuklearRenderer *renderer);
-
-    class NuklearOgreGameState : public TutorialGameState, public NuklearOgre::NuklearRenderer
+    class NuklearOgreGameState : public TutorialGameState
     {
     public:
         NuklearOgreGameState(const Ogre::String &helpDescription);
 
         void createScene01(void) override;
-        void destroyScene(void) override;
-
-        void render(Ogre::SceneManager *) override;
 
         void update(float timeSinceLast) override;
 
@@ -39,9 +32,7 @@ namespace Demo
         void keyPressed(const SDL_KeyboardEvent &arg) override;
         void keyReleased(const SDL_KeyboardEvent &arg) override;
 
-    private:
-        std::unique_ptr<nk_context> mNuklearCtx;
-        std::unique_ptr<nk_font_atlas> mFontAtlas;
-        std::unique_ptr<NuklearOgre::NuklearOgre> mNuklearOgre;
+        NuklearOgre::NuklearRenderer *mNuklearRenderer;
+        nk_context *mNuklearCtx;
     };
 }

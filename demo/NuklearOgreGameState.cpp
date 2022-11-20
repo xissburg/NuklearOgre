@@ -3,10 +3,7 @@
 #include <Math/Array/OgreObjectMemoryManager.h>
 #include <OgreCommon.h>
 #include <OgreGpuResource.h>
-#include <OgreImage2.h>
 #include <OgreRoot.h>
-#include <OgreTextureGpu.h>
-#include <OgreTextureGpuManager.h>
 #include <OgreWindow.h>
 #include <SDL_events.h>
 #include <TutorialGameState.h>
@@ -21,9 +18,8 @@
 #define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
 #define NK_INCLUDE_FONT_BAKING
 #define NK_INCLUDE_DEFAULT_FONT
-#define NK_IMPLEMENTATION
 #include <nuklear.h>
-#include "NuklearOgre.h"
+#include <NuklearRenderer.h>
 
 #include "../../Nuklear/demo/common/overview.c"
 
@@ -31,110 +27,24 @@
 
 namespace Demo
 {
-    void RegisterNuklearCompositor(Ogre::Root *root, NuklearOgre::NuklearRenderer *renderer)
-    {
-        NuklearOgre::RegisterCompositor(root, renderer);
-    }
-
     NuklearOgreGameState::NuklearOgreGameState(const Ogre::String &helpDescription)
         : TutorialGameState(helpDescription)
     {
 
     }
 
-    void nk_font_stash_begin(nk_font_atlas *atlas)
-    {
-        nk_font_atlas_init_default(atlas);
-        nk_font_atlas_begin(atlas);
-    }
-
-    void nk_font_stash_end(nk_font_atlas *atlas, nk_context *ctx,
-                           Ogre::TextureGpuManager *textureManager,
-                           nk_draw_null_texture *texNull)
-    {
-        const void *image; int w, h;
-        image = nk_font_atlas_bake(atlas, &w, &h, NK_FONT_ATLAS_RGBA32);
-
-        Ogre::Image2 *imagePtr = new Ogre::Image2;
-        imagePtr->loadDynamicImage(const_cast<void *>(image), w, h, 1, Ogre::TextureTypes::Type2D, Ogre::PFG_RGBA8_UNORM_SRGB, false, 1);
-
-        Ogre::TextureGpu *texture = textureManager->createTexture("FontAtlas", Ogre::GpuPageOutStrategy::Discard,
-                                                                  Ogre::TextureFlags::AutomaticBatching |
-                                                                  Ogre::TextureFlags::PrefersLoadingFromFileAsSRGB,
-                                                                  Ogre::TextureTypes::Type2D);
-        texture->scheduleTransitionTo(Ogre::GpuResidency::Resident, imagePtr, true);
-
-        nk_font_atlas_end(atlas, nk_handle_ptr(texture), texNull);
-
-        if (atlas->default_font)
-            nk_style_set_font(ctx, &atlas->default_font->handle);
-    }
-
     void NuklearOgreGameState::createScene01(void)
     {
-        mNuklearCtx.reset(new nk_context);
-        mFontAtlas.reset(new nk_font_atlas);
-        nk_init_default(mNuklearCtx.get(), 0);
-
-        nk_convert_config config;
-        memset(&config, 0, sizeof(config));
-        config.circle_segment_count = 22;
-        config.curve_segment_count = 22;
-        config.arc_segment_count = 22;
-        config.global_alpha = 1.0f;
-        config.shape_AA = NK_ANTI_ALIASING_OFF;
-        config.line_AA = NK_ANTI_ALIASING_OFF;
-
-        /* Load Fonts: if none of these are loaded a default font will be used  */
-        /* Load Cursor: if you uncomment cursor loading please hide the cursor */
-        nk_font_atlas *atlas = mFontAtlas.get();
-        nk_font_stash_begin(atlas);
-        /*struct nk_font *droid = nk_font_atlas_add_from_file(atlas, "../../../extra_font/DroidSans.ttf", 14, 0);*/
-        /*struct nk_font *roboto = nk_font_atlas_add_from_file(atlas, "../../../extra_font/Roboto-Regular.ttf", 16, 0);*/
-        /*struct nk_font *future = nk_font_atlas_add_from_file(atlas, "../../../extra_font/kenvector_future_thin.ttf", 13, 0);*/
-        /*struct nk_font *clean = nk_font_atlas_add_from_file(atlas, "../../../extra_font/ProggyClean.ttf", 12, 0);*/
-        /*struct nk_font *tiny = nk_font_atlas_add_from_file(atlas, "../../../extra_font/ProggyTiny.ttf", 10, 0);*/
-        /*struct nk_font *cousine = nk_font_atlas_add_from_file(atlas, "../../../extra_font/Cousine-Regular.ttf", 13, 0);*/
-        nk_context *ctx = mNuklearCtx.get();
-        Ogre::TextureGpuManager *textureManager = mGraphicsSystem->getRoot()->getHlmsManager()->getRenderSystem()->getTextureGpuManager();
-        nk_font_stash_end(atlas, ctx, textureManager, &config.tex_null);
-        /*nk_style_load_all_cursors(ctx, atlas->cursors);*/
-        /*nk_style_set_font(ctx, &roboto->handle);*/
-
-        Ogre::SceneManager *sceneManager = mGraphicsSystem->getSceneManager();
-        Ogre::ObjectMemoryManager *memManager = &sceneManager->_getEntityMemoryManager(Ogre::SCENE_DYNAMIC);
-        mNuklearOgre.reset(new NuklearOgre::NuklearOgre(mGraphicsSystem->getRoot(), mGraphicsSystem->getSceneManager(), config));
-        mNuklearOgre->addContext(mNuklearCtx.get());
-
         mCameraController = new CameraController( mGraphicsSystem, false );
 
         TutorialGameState::createScene01();
 
-        nk_input_begin(mNuklearCtx.get());
-    }
-
-    void NuklearOgreGameState::destroyScene(void)
-    {
-        Ogre::SceneManager *sceneManager = mGraphicsSystem->getSceneManager();
-        sceneManager->getRootSceneNode(Ogre::SCENE_DYNAMIC)->removeAndDestroyAllChildren();
-
-        nk_font_atlas_clear(mFontAtlas.get());
-        nk_free(mNuklearCtx.get());
-        mNuklearCtx.reset();
-        mFontAtlas.reset();
-        mNuklearOgre.reset();
-
-        TutorialGameState::destroyScene();
-    }
-
-    void NuklearOgreGameState::render(Ogre::SceneManager *sceneManager)
-    {
-        mNuklearOgre->render(sceneManager);
+        nk_input_begin(mNuklearCtx);
     }
 
     void NuklearOgreGameState::update(float timeSinceLast)
     {
-        nk_context *ctx = mNuklearCtx.get();
+        nk_context *ctx = mNuklearCtx;
 
         nk_input_end(ctx);
 
@@ -182,7 +92,7 @@ namespace Demo
 
     void NuklearOgreGameState::mouseMoved(const SDL_Event &evt)
     {
-        nk_context *ctx = mNuklearCtx.get();
+        nk_context *ctx = mNuklearCtx;
 
         if (evt.type == SDL_MOUSEMOTION)
         {
@@ -228,14 +138,14 @@ namespace Demo
 
     void NuklearOgreGameState::mousePressed(const SDL_MouseButtonEvent &button, Ogre::uint8 id)
     {
-        nk_context *ctx = mNuklearCtx.get();
+        nk_context *ctx = mNuklearCtx;
         handleMouseButton(button, true, ctx);
 
         TutorialGameState::mousePressed(button, id);
     }
     void NuklearOgreGameState::mouseReleased(const SDL_MouseButtonEvent &button, Ogre::uint8 id)
     {
-        nk_context *ctx = mNuklearCtx.get();
+        nk_context *ctx = mNuklearCtx;
         handleMouseButton(button, false, ctx);
 
         TutorialGameState::mouseReleased(button, id);
