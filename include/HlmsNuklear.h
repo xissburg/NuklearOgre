@@ -36,7 +36,7 @@ namespace NuklearOgre
             if (!renderable->getUserObjectBindings().getUserAny("nuklear").isEmpty())
             {
                 setProperty("nuklear", 1);
-                setProperty( Ogre::HlmsBaseProp::PsoClipDistances, 4 );
+                setProperty(Ogre::HlmsBaseProp::PsoClipDistances, 4);
             }
         }
 
@@ -46,7 +46,7 @@ namespace NuklearOgre
                                            Ogre::CommandBuffer *commandBuffer,
                                            const Ogre::Vector4 &clipRect)
         {
-            if( OGRE_EXTRACT_HLMS_TYPE_FROM_CACHE_HASH( lastCacheHash ) != mType )
+            if (OGRE_EXTRACT_HLMS_TYPE_FROM_CACHE_HASH(lastCacheHash) != mType)
             {
                 //We changed HlmsType, rebind the shared textures.
                 mLastDescTexture = 0;
@@ -71,7 +71,7 @@ namespace NuklearOgre
                             Ogre::CbShaderBuffer(Ogre::PixelShader, 2, mConstBuffers[mCurrentConstBuffer], 0, 0);
                 }
 
-                rebindTexBuffer( commandBuffer );
+                rebindTexBuffer(commandBuffer);
 
                 mListener->hlmsTypeChanged(false, commandBuffer, datablock, 0u);
             }
@@ -109,7 +109,8 @@ namespace NuklearOgre
             bool exceedsConstBuffer = (size_t)((currentMappedConstBuffer - mStartMappedConstBuffer) + 4) >
                                                                                     mCurrentConstBufferSize;
 
-            const size_t minimumTexBufferSize = 16;
+            // Tex buffer includes world matrix and clip rect.
+            const size_t minimumTexBufferSize = 16 + 4;
             bool exceedsTexBuffer = (currentMappedTexBuffer - mStartMappedTexBuffer) +
                                         minimumTexBufferSize >= mCurrentTexBufferSize;
 
