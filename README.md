@@ -6,13 +6,17 @@ Ogre-Next backend for Nuklear immediate-mode GUI.
 
 - [Ogre-Next](https://github.com/OGRECave/ogre-next)
 - [Nuklear](https://github.com/Immediate-Mode-UI/Nuklear)
-- [SDL 2](https://github.com/libsdl-org/SDL)
+- [SDL 2](https://github.com/libsdl-org/SDL) to build demo
 
 # Usage
 
-This is a header-only library. You have to invoke `#include <NuklearItem.h>` right after including `nuklear.h` with the desired build options (see [NuklearOgreGameState.cpp](https://github.com/xissburg/NuklearOgre/blob/main/demo/NuklearOgreGameState.cpp)).
+This is a header-only library. You have to invoke `#include <NuklearOgre.h>` right after including `nuklear.h` with the desired build options. Make sure you define `NK_IMPLEMENTATION` in a single cpp file before including `nuklear.h` and `NuklearOgre.h` to prevent multiple definition errors.
 
-`NuklearOgre::NuklearItem` is an `Ogre::Movable` which, much like `Ogre::Item`, can be attached to a `Ogre::SceneNode` and placed anywhere in the world, which means the UI can be presented in a virtual screen. To present it as an overlay, a separate rendering pass with an orthographic camera is necessary. The pass should have a limited range of render queues and the gui items should be assigned to these queues. This ensures the gui item will be drawn in that render pass only. The orthographic camera must be updated when the window size changes using `Ogre::Camera::setOrthoWindow` and the scene node that holds the gui item must be positioned halfway to the top and left so it's centered on screen and its Z position must be set beyond the frustum near plane.
+This implementation uses a slightly custom HLMS so `NuklearOgre::HlmsNuklear` must be registered instead of `Ogre::HlmsUnlit`. It's also important to call `Ogre::Hlms::reloadFrom` to load the custom pieces into the shader. See `NuklearOgreGameState::registerHlms` for details. The custom piece is necessary to perform clipping, e.g. using `gl_ClipDistance` in OpenGL.
+
+The UI is rendered in a custom pass. In the compositor, create an extra pass using `pass custom nuklear`.
+
+See [NuklearOgreDemo.cpp](https://github.com/xissburg/NuklearOgre/blob/main/demo/NuklearOgreDemo.cpp) to learn how to initialize Nuklear and load fonts. Then, a `OgreNuklear::NuklearRenderer` must be created with the Nuklear config and the context must be added to it. Then call `NuklearOgre::RegisterCustomPass` before creating a workspace.
 
 # Build Demo
 
