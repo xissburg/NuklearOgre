@@ -1,6 +1,7 @@
 @property( nuklear )
 
 @piece( custom_vs_uniformDeclaration )
+    #undef masterMatrix
     #define masterMatrix worldViewProj
 @end
 
