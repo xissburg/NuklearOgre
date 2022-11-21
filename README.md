@@ -10,7 +10,7 @@ Ogre-Next backend for Nuklear immediate-mode GUI.
 
 # Usage
 
-This is a header-only library. You have to invoke `#include <NuklearOgre.h>` right after including `nuklear.h` with the desired build options. Make sure you define `NK_IMPLEMENTATION` in a single cpp file before including `nuklear.h` and `NuklearOgre.h` to prevent multiple definition errors.
+This is a header-only library. You have to invoke `#include <NuklearOgre.h>` right after including `nuklear.h` with the desired build options. Make sure you define `NK_IMPLEMENTATION` in a single cpp file before including `nuklear.h` and `NuklearOgre.h` to prevent _multiple definition_ errors.
 
 This implementation uses a slightly custom HLMS so `NuklearOgre::HlmsNuklear` must be registered instead of `Ogre::HlmsUnlit`. It's also important to call `Ogre::Hlms::reloadFrom` to load the custom pieces into the shader. See `NuklearOgreGameState::registerHlms` for details. The custom piece is necessary to perform clipping, e.g. using `gl_ClipDistance` in OpenGL.
 
