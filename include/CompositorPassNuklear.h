@@ -1,8 +1,8 @@
 #pragma once
 
-#include "NuklearRenderer.h"
 #include <Compositor/Pass/OgreCompositorPass.h>
 #include <OgreSceneManager.h>
+#include "NuklearRenderer.h"
 
 namespace NuklearOgre
 {

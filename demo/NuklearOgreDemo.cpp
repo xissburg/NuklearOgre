@@ -20,16 +20,10 @@
 #include <System/Android/AndroidSystems.h>
 #include <System/MainEntryPoints.h>
 
-#define NK_INCLUDE_FIXED_TYPES
-#define NK_INCLUDE_STANDARD_IO
-#define NK_INCLUDE_STANDARD_VARARGS
-#define NK_INCLUDE_DEFAULT_ALLOCATOR
-#define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
-#define NK_INCLUDE_FONT_BAKING
-#define NK_INCLUDE_DEFAULT_FONT
+// Nuklear implementation will be compiled in this translation unit.
 #define NK_IMPLEMENTATION
-#include <nuklear.h>
-#include <RegisterCompositor.h>
+#include "NuklearInclude.h"
+#include <NuklearOgre.h>
 
 #if OGRE_PLATFORM != OGRE_PLATFORM_ANDROID
 #if OGRE_PLATFORM == OGRE_PLATFORM_WIN32
@@ -99,19 +93,19 @@ namespace Demo
             /*struct nk_font *tiny = nk_font_atlas_add_from_file(atlas, "../../../extra_font/ProggyTiny.ttf", 10, 0);*/
             /*struct nk_font *cousine = nk_font_atlas_add_from_file(atlas, "../../../extra_font/Cousine-Regular.ttf", 13, 0);*/
             nk_context *ctx = &mNuklearCtx;
-            Ogre::TextureGpuManager *textureManager = getRoot()->getHlmsManager()->getRenderSystem()->getTextureGpuManager();
+            Ogre::TextureGpuManager *textureManager = mRoot->getHlmsManager()->getRenderSystem()->getTextureGpuManager();
             nk_font_stash_end(atlas, &mNuklearCtx, textureManager, &config.tex_null);
             /*nk_style_load_all_cursors(ctx, atlas->cursors);*/
             /*nk_style_set_font(ctx, &roboto->handle);*/
 
-            mNuklearRenderer.reset(new NuklearOgre::NuklearRenderer(getRoot(), getSceneManager(), config));
+            mNuklearRenderer.reset(new NuklearOgre::NuklearRenderer(mRoot, mSceneManager, config));
             mNuklearRenderer->addContext(&mNuklearCtx);
 
             NuklearOgreGameState *gameState = static_cast<NuklearOgreGameState *>(mCurrentGameState);
             gameState->mNuklearCtx = ctx;
             gameState->mNuklearRenderer = mNuklearRenderer.get();
 
-            NuklearOgre::RegisterCompositor(mRoot, mNuklearRenderer.get());
+            NuklearOgre::RegisterCustomPass(mRoot, mNuklearRenderer.get());
 
             addResourceLocation(mResourcePath + "resources", "FileSystem", "Nuklear");
             Ogre::ResourceGroupManager::getSingleton().initialiseResourceGroup("Nuklear", true);
