@@ -64,7 +64,8 @@ namespace NuklearOgre
 
         void render()
         {
-            mCommandBuffer.setCurrentRenderSystem(mSceneManager->getDestinationRenderSystem());
+            Ogre::RenderSystem *renderSystem = mSceneManager->getDestinationRenderSystem();
+            mCommandBuffer.setCurrentRenderSystem(renderSystem);
 
             Ogre::Hlms *hlms = mRoot->getHlmsManager()->getHlms(Ogre::HLMS_UNLIT);
             Ogre::HlmsCache passCache = hlms->preparePassHash(0, false, false, mSceneManager);
@@ -79,6 +80,7 @@ namespace NuklearOgre
 
             hlms->preCommandBufferExecution(&mCommandBuffer);
 
+            renderSystem->executeRenderPassDescriptorDelayedActions();
             mCommandBuffer.execute();
 
             hlms->postCommandBufferExecution(&mCommandBuffer);
