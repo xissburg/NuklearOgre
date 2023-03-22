@@ -11,10 +11,16 @@
 #include <CameraController.h>
 #include <climits>
 
+// Nuklear implementation will be compiled in this translation unit.
+#define NK_IMPLEMENTATION
 #include "NuklearInclude.h"
 #include <NuklearOgre.h>
 
 #include "../../Nuklear/demo/common/overview.c"
+#include "../../Nuklear/demo/common/style.c"
+#include "../../Nuklear/demo/common/calculator.c"
+#include "../../Nuklear/demo/common/canvas.c"
+#include "../../Nuklear/demo/common/node_editor.c"
 
 namespace Demo
 {
@@ -74,7 +80,10 @@ namespace Demo
         }
         nk_end(ctx);
 
+        calculator(ctx);
+        canvas(ctx);
         overview(ctx);
+        node_editor(ctx);
 
         TutorialGameState::update(timeSinceLast);
 

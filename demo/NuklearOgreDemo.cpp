@@ -6,6 +6,7 @@
 #include <OgreCamera.h>
 #include <OgreFrustum.h>
 #include <OgreImage2.h>
+#include <OgrePixelFormatGpu.h>
 #include <OgreRoot.h>
 #include <OgreTextureGpuManager.h>
 #include <OgreWindow.h>
@@ -20,8 +21,6 @@
 #include <System/Android/AndroidSystems.h>
 #include <System/MainEntryPoints.h>
 
-// Nuklear implementation will be compiled in this translation unit.
-#define NK_IMPLEMENTATION
 #include "NuklearInclude.h"
 #include <NuklearOgre.h>
 
@@ -186,7 +185,8 @@ namespace Demo
                 }
 
                 //Create and register the unlit Hlms
-                hlmsUnlit = OGRE_NEW NuklearOgre::HlmsNuklear( archiveUnlit, &archiveUnlitLibraryFolders );
+                Ogre::Real windowScale = 2;
+                hlmsUnlit = OGRE_NEW NuklearOgre::HlmsNuklear( archiveUnlit, &archiveUnlitLibraryFolders, windowScale );
                 Ogre::Root::getSingleton().getHlmsManager()->registerHlms( hlmsUnlit );
 
                 // Load custom Nuklear shader pieces.
@@ -253,7 +253,7 @@ namespace Demo
         NuklearOgreGraphicsSystem(GameState *gameState) :
             GraphicsSystem(gameState)
         {
-            mAlwaysAskForConfig = false;
+            mAlwaysAskForConfig = true;
         }
 
     private:

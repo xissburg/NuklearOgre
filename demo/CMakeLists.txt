@@ -63,6 +63,7 @@ target_include_directories(NuklearOgreDemo SYSTEM
     PUBLIC ${SDL2_INCLUDE_DIR}
     PUBLIC ${OGRE_INCLUDE_DIRS}
     PUBLIC ${OGRE_INCLUDE_DIR}/Hlms/Common
+    PUBLIC ${OGRE_INCLUDE_DIR}/Atmosphere
     PUBLIC ${OGRE_Overlay_INCLUDE_DIR}
     PUBLIC ${OGRE_HlmsUnlit_INCLUDE_DIR}
     PUBLIC ${OGRE_HlmsPbs_INCLUDE_DIR}
@@ -72,6 +73,7 @@ target_include_directories(NuklearOgreDemo SYSTEM
 
 target_link_libraries(NuklearOgreDemo
     NuklearOgre
+    OgreAtmosphere
     ${SDL2_LIBRARY}
     ${OGRE_HlmsUnlit_LIBRARIES}
     ${OGRE_HlmsPbs_LIBRARIES}

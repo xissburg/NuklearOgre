@@ -18,6 +18,7 @@ namespace NuklearOgre
             , mCamera(defaultCamera)
             , mRenderer(renderer)
         {
+            initialize(rtv);
         }
 
         void execute(const Ogre::Camera *lodCamera) override
@@ -39,6 +40,9 @@ namespace NuklearOgre
             sceneManager->_setCurrentCompositorPass(this);
 
             notifyPassPreExecuteListeners();
+
+            executeResourceTransitions();
+            setRenderPassDescToCurrent();
 
             mRenderer->render();
 

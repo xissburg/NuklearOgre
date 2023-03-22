@@ -20,14 +20,18 @@ namespace NuklearOgre
     class HlmsNuklear : public Ogre::HlmsUnlit
     {
     public:
-        HlmsNuklear(Ogre::Archive *dataFolder, Ogre::ArchiveVec *libraryFolders)
+        HlmsNuklear(Ogre::Archive *dataFolder, Ogre::ArchiveVec *libraryFolders, float windowScale)
             : HlmsUnlit(dataFolder, libraryFolders)
+            , mWindowScaleInv(1.f / windowScale)
         {}
 
         HlmsNuklear(Ogre::Archive *dataFolder, Ogre::ArchiveVec *libraryFolders,
-                    Ogre::HlmsTypes type, const Ogre::String &typeName)
+                    Ogre::HlmsTypes type, const Ogre::String &typeName, float windowScale)
             : HlmsUnlit(dataFolder, libraryFolders, type, typeName)
+            , mWindowScaleInv(1.f / windowScale)
         {}
+
+        virtual ~HlmsNuklear() = default;
 
         void calculateHashForPreCreate(Ogre::Renderable *renderable, Ogre::PiecesMap *inOutPieces) override
         {
@@ -102,7 +106,8 @@ namespace NuklearOgre
             Ogre::TextureGpu *renderTarget = mRenderSystem->getCurrentRenderViewports()[0].getCurrentTarget();
 
             Ogre::Vector3 position = Ogre::Vector3(-1, 1, 0);
-            Ogre::Vector3 scale = Ogre::Vector3(2.0 / renderTarget->getWidth(), -2.0 / renderTarget->getHeight(), 1);
+            Ogre::Vector3 scale = Ogre::Vector3(2.0 / (renderTarget->getWidth() * mWindowScaleInv),
+                                               -2.0 / (renderTarget->getHeight() * mWindowScaleInv), 1);
             Ogre::Matrix4 worldMat = Ogre::Matrix4::IDENTITY;
             worldMat.makeTransform(position, scale, Ogre::Quaternion::IDENTITY);
 
@@ -201,5 +206,8 @@ namespace NuklearOgre
 
             return ((mCurrentMappedConstBuffer - mStartMappedConstBuffer) >> 2) - 1;
         }
+
+    private:
+        float mWindowScaleInv;
     };
 }

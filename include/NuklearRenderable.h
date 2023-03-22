@@ -24,6 +24,9 @@
 #include <limits>
 #include "HlmsNuklear.h"
 
+struct nk_context;
+struct nk_convert_config;
+
 namespace NuklearOgre
 {
     class NuklearRenderable : public Ogre::Renderable
@@ -170,18 +173,28 @@ namespace NuklearOgre
                 mIndirectBuffer = vaoManager->createIndirectBuffer(newCmdSize, Ogre::BT_DYNAMIC_PERSISTENT, 0, false);
             }
 
-            void *vertex = vertexBuffer->map(0, requiredVertexCount);
-            std::memcpy(vertex, nk_buffer_memory_const(&mNkVertexBuffer), requiredVertexCount * Ogre::VaoManager::calculateVertexSize(mVertexElements));
-            vertexBuffer->unmap(Ogre::UO_KEEP_PERSISTENT, 0u, requiredVertexCount);
+            if (requiredVertexCount > 0)
+            {
+                void *vertex = vertexBuffer->map(0, requiredVertexCount);
+                std::memcpy(vertex, nk_buffer_memory_const(&mNkVertexBuffer), requiredVertexCount * Ogre::VaoManager::calculateVertexSize(mVertexElements));
+                vertexBuffer->unmap(Ogre::UO_KEEP_PERSISTENT, 0u, requiredVertexCount);
+            }
 
-            void *index = indexBuffer->map(0, requiredElemCount);
-            std::memcpy(index, nk_buffer_memory_const(&mNkElementBuffer), requiredElemCount * indexBuffer->getBytesPerElement());
-            indexBuffer->unmap(Ogre::UO_KEEP_PERSISTENT, 0u, requiredElemCount);
+            if (requiredElemCount > 0)
+            {
+                void *index = indexBuffer->map(0, requiredElemCount);
+                std::memcpy(index, nk_buffer_memory_const(&mNkElementBuffer), requiredElemCount * indexBuffer->getBytesPerElement());
+                indexBuffer->unmap(Ogre::UO_KEEP_PERSISTENT, 0u, requiredElemCount);
+            }
+
             Ogre::CbDrawIndexed *drawCmd;
 
             if (vaoManager->supportsIndirectBuffers())
             {
-                drawCmd = reinterpret_cast<Ogre::CbDrawIndexed *>(mIndirectBuffer->map(0, requiredCmdCount * sizeof(Ogre::CbDrawIndexed)));
+                if (requiredCmdCount > 0)
+                {
+                    drawCmd = reinterpret_cast<Ogre::CbDrawIndexed *>(mIndirectBuffer->map(0, requiredCmdCount * sizeof(Ogre::CbDrawIndexed)));
+                }
             }
             else
             {
@@ -273,7 +286,8 @@ namespace NuklearOgre
                 Ogre::uint32 baseInstance = hlms->fillBuffersForNuklear(
                     *lastHlmsCache, static_cast<HlmsNuklearDatablock *>(datablock), lastHlmsCacheHash, &commandBuffer, clipRect);
 
-                if (drawCall != commandBuffer.getLastCommand()) {
+                if (drawCall != commandBuffer.getLastCommand())
+                {
                     drawCall = commandBuffer.addCommand<Ogre::CbDrawCallIndexed>();
                     *drawCall = Ogre::CbDrawCallIndexed(baseInstanceAndIndirectBuffers, vao, reinterpret_cast<void *>(indirectBufferOffset));
                 }
@@ -292,7 +306,7 @@ namespace NuklearOgre
             nk_clear(mNuklearCtx);
             nk_buffer_clear(&mCommands);
 
-            if (vaoManager->supportsIndirectBuffers())
+            if (vaoManager->supportsIndirectBuffers() && requiredCmdCount > 0)
             {
                 mIndirectBuffer->unmap(Ogre::UO_KEEP_PERSISTENT, 0u, requiredCmdCount * sizeof(Ogre::CbDrawIndexed));
             }
