@@ -34,5 +34,6 @@ namespace Demo
 
         NuklearOgre::NuklearRenderer *mNuklearRenderer;
         nk_context *mNuklearCtx;
+        Ogre::Real mWindowScale;
     };
 }

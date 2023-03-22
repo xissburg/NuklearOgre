@@ -26,6 +26,7 @@ namespace Demo
 {
     NuklearOgreGameState::NuklearOgreGameState(const Ogre::String &helpDescription)
         : TutorialGameState(helpDescription)
+        , mWindowScale(1)
     {
 
     }
@@ -93,15 +94,16 @@ namespace Demo
     void NuklearOgreGameState::mouseMoved(const SDL_Event &evt)
     {
         nk_context *ctx = mNuklearCtx;
+        Ogre::Real scaleInv = Ogre::Real(1) / mWindowScale;
 
         if (evt.type == SDL_MOUSEMOTION)
         {
             if (ctx->input.mouse.grabbed) {
                 int x = (int)ctx->input.mouse.prev.x, y = (int)ctx->input.mouse.prev.y;
-                nk_input_motion(ctx, x + evt.motion.xrel, y + evt.motion.yrel);
+                nk_input_motion(ctx, x + evt.motion.xrel * scaleInv, y + evt.motion.yrel * scaleInv);
             }
             else {
-                nk_input_motion(ctx, evt.motion.x, evt.motion.y);
+                nk_input_motion(ctx, evt.motion.x * scaleInv, evt.motion.y * scaleInv);
             }
         }
         else if (evt.type == SDL_MOUSEWHEEL)
@@ -116,9 +118,9 @@ namespace Demo
         TutorialGameState::mouseMoved(evt);
     }
 
-    void handleMouseButton(const SDL_MouseButtonEvent &button, bool down, nk_context *ctx)
+    void handleMouseButton(const SDL_MouseButtonEvent &button, bool down, nk_context *ctx, Ogre::Real scaleInv)
     {
-        const int x = button.x, y = button.y;
+        const int x = button.x * scaleInv, y = button.y * scaleInv;
         switch(button.button)
         {
             case SDL_BUTTON_LEFT:
@@ -139,14 +141,16 @@ namespace Demo
     void NuklearOgreGameState::mousePressed(const SDL_MouseButtonEvent &button, Ogre::uint8 id)
     {
         nk_context *ctx = mNuklearCtx;
-        handleMouseButton(button, true, ctx);
+        Ogre::Real scaleInv = Ogre::Real(1) / mWindowScale;
+        handleMouseButton(button, true, ctx, scaleInv);
 
         TutorialGameState::mousePressed(button, id);
     }
     void NuklearOgreGameState::mouseReleased(const SDL_MouseButtonEvent &button, Ogre::uint8 id)
     {
         nk_context *ctx = mNuklearCtx;
-        handleMouseButton(button, false, ctx);
+        Ogre::Real scaleInv = Ogre::Real(1) / mWindowScale;
+        handleMouseButton(button, false, ctx, scaleInv);
 
         TutorialGameState::mouseReleased(button, id);
     }

@@ -1,5 +1,6 @@
 #include <OgreBuildSettings.h>
 #include <GraphicsSystem.h>
+#include <SdlInputHandler.h>
 #include "NuklearOgreGameState.h"
 #include <HlmsNuklear.h>
 
@@ -103,6 +104,7 @@ namespace Demo
             NuklearOgreGameState *gameState = static_cast<NuklearOgreGameState *>(mCurrentGameState);
             gameState->mNuklearCtx = ctx;
             gameState->mNuklearRenderer = mNuklearRenderer.get();
+            gameState->mWindowScale = mWindowScale;
 
             NuklearOgre::RegisterCustomPass(mRoot, mNuklearRenderer.get());
 
@@ -185,8 +187,7 @@ namespace Demo
                 }
 
                 //Create and register the unlit Hlms
-                Ogre::Real windowScale = 2;
-                hlmsUnlit = OGRE_NEW NuklearOgre::HlmsNuklear( archiveUnlit, &archiveUnlitLibraryFolders, windowScale );
+                hlmsUnlit = OGRE_NEW NuklearOgre::HlmsNuklear( archiveUnlit, &archiveUnlitLibraryFolders, mWindowScale );
                 Ogre::Root::getSingleton().getHlmsManager()->registerHlms( hlmsUnlit );
 
                 // Load custom Nuklear shader pieces.
@@ -240,6 +241,15 @@ namespace Demo
             }
         }
 
+        void createScene01() override
+        {
+            GraphicsSystem::createScene01();
+            SdlInputHandler *input = getInputHandler();
+            input->setGrabMousePointer(false);
+            input->setMouseRelative(false);
+            input->setMouseVisible(true);
+        }
+
         void deinitialize() override
         {
             nk_font_atlas_clear(&mFontAtlas);
@@ -251,7 +261,7 @@ namespace Demo
 
     public:
         NuklearOgreGraphicsSystem(GameState *gameState) :
-            GraphicsSystem(gameState)
+            GraphicsSystem(gameState), mWindowScale(2)
         {
             mAlwaysAskForConfig = true;
         }
@@ -260,6 +270,7 @@ namespace Demo
         nk_context mNuklearCtx;
         nk_font_atlas mFontAtlas;
         std::unique_ptr<NuklearOgre::NuklearRenderer> mNuklearRenderer;
+        Ogre::Real mWindowScale;
     };
 
     void MainEntryPoints::createSystems( GameState **outGraphicsGameState,
